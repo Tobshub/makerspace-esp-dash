@@ -79,6 +79,16 @@ makerspace/v1/projects/{projectId}/devices/{deviceKey}/telemetry
 
 `timestamp` is optional Unix milliseconds. Set a retained Last Will on the `status` topic with `{"status":"offline"}`, and publish `{"status":"online"}` when the device connects. Devices that stop publishing are marked offline after `DEVICE_OFFLINE_TIMEOUT_SECONDS` (default 60).
 
+Signed-in project members can read what was stored:
+
+```text
+GET /api/v1/devices/{deviceId}/telemetry/latest
+GET /api/v1/devices/{deviceId}/telemetry?metric=temperature&from=2026-10-01T00:00:00Z&to=2026-10-02T00:00:00Z
+GET /api/v1/projects/{projectId}/telemetry/latest
+```
+
+History defaults to the last 24 hours, `resolution=raw`, and at most 500 points. `1m`, `5m`, `1h`, and `1d` are reserved. The device page shows the latest values.
+
 ## Simulator
 
 The device simulator stands in for an ESP32. It connects as the device, publishes drifting greenhouse telemetry, and answers `set_pump`.

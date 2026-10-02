@@ -17,6 +17,7 @@ import (
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/httpapi"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/projects"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/readings"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/teams"
 )
 
@@ -67,6 +68,7 @@ func New(d Deps) *gin.Engine {
 	teams.Register(secured, d.Pool)
 	projects.Register(secured, d.Pool)
 	devices.Register(secured, d.Pool, hostOr(d.BrokerHost), portOr(d.BrokerPort))
+	readings.Register(secured, d.Pool)
 
 	router.NoRoute(func(c *gin.Context) {
 		httpapi.Error(c, http.StatusNotFound, "NOT_FOUND", "Not found")

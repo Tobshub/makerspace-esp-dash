@@ -12,7 +12,7 @@ If time is short, `plan.md` section 85 is the cut order. The phase numbers below
 | 3 | [Device registry](03-device-registry.md) | Done. One-time device credentials. |
 | 4 | [MQTT ingestion](04-mqtt-ingestion.md) | Done. Telemetry and state land in the database. |
 | 5 | [Device simulator](05-device-simulator.md) | Done. Greenhouse telemetry and command acknowledgements. |
-| 6 | [Telemetry API](06-telemetry-api.md) | Latest and historical queries. |
+| 6 | [Telemetry API](06-telemetry-api.md) | Done. Latest values and raw history. |
 | 7 | [Realtime updates](07-realtime-updates.md) | Dashboard updates without refresh. |
 | 8 | [Dashboard UI](08-dashboard-ui.md) | Project overview a person can read. |
 | 9 | [Metric definitions](09-metric-definitions.md) | Arbitrary keys become widgets. |

@@ -1,7 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, errorText, type Device, type IssuedDevice } from '../api/client'
+import {
+  api,
+  deviceTelemetryLatest,
+  errorText,
+  formatTelemetry,
+  type Device,
+  type IssuedDevice,
+} from '../api/client'
 import { CopyButton } from '../components/CopyButton'
 
 export function DevicePage() {
@@ -16,6 +23,12 @@ export function DevicePage() {
       if (!current || current.status === 'disabled') return false
       return 5000
     },
+  })
+  const latest = useQuery({
+    queryKey: ['telemetry-latest', deviceId],
+    queryFn: () => deviceTelemetryLatest(deviceId),
+    enabled: deviceId !== '',
+    refetchInterval: 5000,
   })
   const [draft, setDraft] = useState<{ name: string; description: string } | null>(null)
   const [error, setError] = useState<unknown>(null)
@@ -97,6 +110,25 @@ export function DevicePage() {
         <p>Last seen: {current.lastSeenAt ? new Date(current.lastSeenAt).toLocaleString() : 'Never'}</p>
         {waiting ? <p>Waiting for device…</p> : null}
         {current.status === 'disabled' ? <p>This device is disabled and should not connect.</p> : null}
+      </div>
+      <div className="card">
+        <h2>Latest telemetry</h2>
+        {latest.isLoading ? <p>Loading…</p> : null}
+        {latest.isError ? <p className="error">{errorText(latest.error)}</p> : null}
+        {latest.data && latest.data.metrics.length === 0 ? <p>No telemetry yet.</p> : null}
+        {latest.data && latest.data.metrics.length > 0 ? (
+          <ul className="metric-list">
+            {latest.data.metrics.map((metric) => (
+              <li key={metric.metric}>
+                <span>{metric.metric}</span>
+                <span>
+                  {formatTelemetry(metric)}{' '}
+                  <span className="muted">{new Date(metric.recordedAt).toLocaleString()}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       {issued ? (
         <div className="stack">
