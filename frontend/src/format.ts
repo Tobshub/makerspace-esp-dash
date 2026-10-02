@@ -48,6 +48,27 @@ export function isNumericMetric(value: Pick<TelemetryValue, 'numericValue'>) {
   return value.numericValue != null
 }
 
+export function formatDefined(
+  value: Pick<TelemetryValue, 'numericValue' | 'booleanValue' | 'stringValue'> | null | undefined,
+  definition?: { dataType?: string; unit?: string } | null,
+): string {
+  if (!value) return '—'
+  const booleanText = value.booleanValue == null ? null : value.booleanValue ? 'ON' : 'OFF'
+  if (definition?.dataType === 'boolean') return booleanText ?? '—'
+  if (definition?.dataType === 'string') return value.stringValue ?? '—'
+  if (value.numericValue != null) {
+    return definition?.unit ? `${value.numericValue} ${definition.unit}` : String(value.numericValue)
+  }
+  if (booleanText) return booleanText
+  if (value.stringValue != null) return value.stringValue
+  return '—'
+}
+
+export function suggestMetricName(key: string) {
+  const words = key.replace(/_/g, ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 export const chartRanges = [
   { id: '1h', label: 'Last hour', ms: 60 * 60 * 1000 },
   { id: '24h', label: 'Last 24 hours', ms: 24 * 60 * 60 * 1000 },

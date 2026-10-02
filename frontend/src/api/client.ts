@@ -128,6 +128,28 @@ export type DeviceState = {
   updatedAt: string | null
 }
 
+export type MetricDefinition = {
+  id: string
+  projectId: string
+  key: string
+  name: string
+  description: string
+  dataType: 'number' | 'boolean' | 'string'
+  unit: string
+  displayType: 'number' | 'line' | 'gauge' | 'boolean' | 'status' | 'text'
+  minValue: number | null
+  maxValue: number | null
+  createdAt: string
+  updatedAt: string
+  lastSeenAt: string | null
+}
+
+export type DiscoveredMetric = {
+  key: string
+  dataType: 'number' | 'boolean' | 'string'
+  lastSeenAt: string
+}
+
 export type Activity = {
   id: string
   deviceId: string
@@ -237,6 +259,14 @@ export function deviceTelemetry(
 
 export function projectTelemetryLatest(projectId: string) {
   return api<ProjectTelemetryLatest>(`/api/v1/projects/${projectId}/telemetry/latest`)
+}
+
+export function projectMetrics(projectId: string) {
+  return api<{ metrics: MetricDefinition[] }>(`/api/v1/projects/${projectId}/metrics`)
+}
+
+export function discoveredMetrics(projectId: string) {
+  return api<{ metrics: DiscoveredMetric[] }>(`/api/v1/projects/${projectId}/metrics/discovered`)
 }
 
 export function projectOverview(projectId: string) {

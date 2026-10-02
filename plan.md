@@ -2333,13 +2333,13 @@ A user can open a project and see current IoT status without navigating through 
 
 Tasks:
 
-- [ ] discover unknown telemetry keys
-- [ ] metrics page
-- [ ] configure metric names
-- [ ] units
-- [ ] data/display types
-- [ ] min/max values
-- [ ] automatically render configured widgets
+- [x] discover unknown telemetry keys
+- [x] metrics page
+- [x] configure metric names
+- [x] units
+- [x] data/display types
+- [x] min/max values
+- [x] automatically render configured widgets
 
 Acceptance criteria:
 
@@ -2972,10 +2972,10 @@ Teams gain the most value from a functioning end-to-end device path.
 
 ## Metrics
 
-- [ ] discovered keys visible
-- [ ] metric configuration works
-- [ ] units supported
-- [ ] display types supported
+- [x] discovered keys visible
+- [x] metric configuration works
+- [x] units supported
+- [x] display types supported
 
 ## Commands
 

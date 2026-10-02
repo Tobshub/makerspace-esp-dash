@@ -9,13 +9,15 @@ import {
   deviceTelemetryLatest,
   errorText,
   formatTelemetry,
+  projectMetrics,
   type Device,
   type IssuedDevice,
 } from '../api/client'
 import { CopyButton } from '../components/CopyButton'
+import { MetricWidgets } from '../components/MetricWidgets'
 import { StatusPill } from '../components/StatusPill'
 import { TelemetryChart } from '../components/TelemetryChart'
-import { chartRanges, eventLabel, formatWhen, isNumericMetric, rangeMs, wifiRssi } from '../format'
+import { chartRanges, eventLabel, formatDefined, formatWhen, isNumericMetric, rangeMs, wifiRssi } from '../format'
 import { liveInterval } from '../live'
 import { useNow } from '../useNow'
 
@@ -59,6 +61,13 @@ export function DevicePage() {
     enabled: deviceId !== '',
     refetchInterval: liveInterval(),
   })
+  const definitions = useQuery({
+    queryKey: ['metrics', projectId],
+    queryFn: () => projectMetrics(projectId),
+    enabled: projectId !== '',
+    refetchInterval: liveInterval(),
+  })
+  const defined = definitions.data?.metrics ?? []
   const numeric = latest.data?.metrics.filter(isNumericMetric) ?? []
   const selectedMetric = numeric.some((item) => item.metric === metricChoice) ? metricChoice : (numeric[0]?.metric ?? '')
   const historyFrom = new Date(now - rangeMs(range)).toISOString()
@@ -166,18 +175,31 @@ export function DevicePage() {
         {latest.data && latest.data.metrics.length === 0 ? <p>No telemetry yet.</p> : null}
         {latest.data && latest.data.metrics.length > 0 ? (
           <ul className="metric-list">
-            {latest.data.metrics.map((metric) => (
-              <li key={metric.metric}>
-                <span>{metric.metric}</span>
-                <span>
-                  {formatTelemetry(metric)}{' '}
-                  <span className="muted">{formatWhen(metric.recordedAt, now)}</span>
-                </span>
-              </li>
-            ))}
+            {latest.data.metrics.map((metric) => {
+              const definition = defined.find((item) => item.key === metric.metric)
+              return (
+                <li key={metric.metric}>
+                  <span>{definition?.name ?? metric.metric}</span>
+                  <span>
+                    {definition ? formatDefined(metric, definition) : formatTelemetry(metric)}{' '}
+                    <span className="muted">{formatWhen(metric.recordedAt, now)}</span>
+                  </span>
+                </li>
+              )
+            })}
           </ul>
         ) : null}
       </div>
+      <MetricWidgets
+        definitions={defined}
+        devices={[
+          {
+            deviceId,
+            deviceName: current.name,
+            metrics: latest.data?.metrics ?? [],
+          },
+        ]}
+      />
       <div className="card">
         <h2>Chart</h2>
         {numeric.length === 0 ? (
@@ -190,7 +212,7 @@ export function DevicePage() {
                 <select value={selectedMetric} onChange={(event) => setMetricChoice(event.target.value)}>
                   {numeric.map((item) => (
                     <option key={item.metric} value={item.metric}>
-                      {item.metric}
+                      {defined.find((definition) => definition.key === item.metric)?.name ?? item.metric}
                     </option>
                   ))}
                 </select>

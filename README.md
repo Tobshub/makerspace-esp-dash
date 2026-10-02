@@ -98,6 +98,19 @@ GET /api/v1/devices/{deviceId}/state
 GET /api/v1/devices/{deviceId}/events
 ```
 
+A project can name those keys without a backend change:
+
+```text
+GET    /api/v1/projects/{projectId}/metrics
+POST   /api/v1/projects/{projectId}/metrics
+GET    /api/v1/projects/{projectId}/metrics/discovered
+GET    /api/v1/metrics/{metricId}
+PATCH  /api/v1/metrics/{metricId}
+DELETE /api/v1/metrics/{metricId}
+```
+
+Discovered keys are telemetry fields that do not have a definition yet. A definition sets the display name, unit, data type (`number`, `boolean`, `string`), display type (`number`, `line`, `gauge`, `boolean`, `status`, `text`), and optional min/max. The overview draws a widget from that display type. Telemetry is stored either way.
+
 Open browsers also subscribe to `GET /api/v1/projects/{projectId}/stream` (Server-Sent Events). The page sends the session token as `access_token` because `EventSource` cannot set a bearer header. Telemetry, presence, state, and command acknowledgements update the open project without a manual refresh. The API process emits those events. A separate worker can still mark devices offline, and the page refetches about every 30 seconds.
 
 ## Simulator

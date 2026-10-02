@@ -16,6 +16,7 @@ import (
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/dashboard"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/devices"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/httpapi"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/metrics"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/projects"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/readings"
@@ -73,6 +74,7 @@ func New(d Deps) *gin.Engine {
 	devices.Register(secured, d.Pool, hostOr(d.BrokerHost), portOr(d.BrokerPort))
 	readings.Register(secured, d.Pool)
 	dashboard.Register(secured, d.Pool)
+	metrics.Register(secured, d.Pool)
 
 	hub := d.Hub
 	if hub == nil {

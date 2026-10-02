@@ -334,9 +334,42 @@ a.button.secondary {
 }
 
 .pill.disabled,
-.pill.unknown {
+.pill.unknown,
+.pill.off {
   background: #eceae6;
   color: #4a453f;
+}
+
+.pill.on {
+  background: #e5f2e8;
+  color: #1f6b3a;
+}
+
+tr.selected td {
+  background: #fff7f2;
+}
+
+.card.widget {
+  margin: 0;
+}
+
+.widget-text {
+  margin: 4px 0;
+  font-size: 1.2rem;
+  word-break: break-word;
+}
+
+.gauge-track {
+  height: 10px;
+  margin: 10px 0 6px;
+  border-radius: 999px;
+  background: #efeae3;
+  overflow: hidden;
+}
+
+.gauge-fill {
+  height: 100%;
+  background: #c45c26;
 }
 
 @media (max-width: 720px) {

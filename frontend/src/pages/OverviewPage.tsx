@@ -6,12 +6,14 @@ import {
   errorText,
   formatTelemetry,
   projectEvents,
+  projectMetrics,
   projectOverview,
   projectTelemetryLatest,
   api,
   type Device,
   type TelemetryValue,
 } from '../api/client'
+import { MetricWidgets } from '../components/MetricWidgets'
 import { StatusPill } from '../components/StatusPill'
 import { TelemetryChart } from '../components/TelemetryChart'
 import { chartRanges, eventLabel, formatWhen, isNumericMetric, rangeMs } from '../format'
@@ -49,8 +51,19 @@ export function OverviewPage() {
     queryFn: () => projectEvents(projectId),
     refetchInterval: liveInterval(),
   })
+  const definitions = useQuery({
+    queryKey: ['metrics', projectId],
+    queryFn: () => projectMetrics(projectId),
+    refetchInterval: liveInterval(),
+  })
 
-  const cards = metricCards(latest.data?.devices ?? [])
+  const definedKeys = new Set((definitions.data?.metrics ?? []).map((item) => item.key))
+  const cards = metricCards(latest.data?.devices ?? []).filter((card) => !definedKeys.has(card.metric))
+  const widgetDevices = (latest.data?.devices ?? []).map((device) => ({
+    deviceId: device.deviceId,
+    deviceName: device.name,
+    metrics: device.metrics,
+  }))
   const sparkFrom = new Date(now - rangeMs('24h')).toISOString()
   const sparks = useQueries({
     queries: cards.slice(0, 4).map((card) => ({
@@ -137,9 +150,17 @@ export function OverviewPage() {
       ) : null}
       <p className="muted">Active alerts: {overview.data?.activeAlerts ?? 0}</p>
 
+      {definitions.isError ? <p className="error">{errorText(definitions.error)}</p> : null}
+      <MetricWidgets definitions={definitions.data?.metrics ?? []} devices={widgetDevices} />
+
       {latest.isError ? <p className="error">{errorText(latest.error)}</p> : null}
       {latest.isLoading ? <p>Loading telemetry…</p> : null}
       {!latest.isLoading && cards.length === 0 && items.length > 0 ? <p>Waiting for telemetry…</p> : null}
+      {cards.length > 0 ? (
+        <p className="muted">
+          <Link to={`/projects/${projectId}/metrics`}>Configure metrics</Link> to name these and choose a chart, gauge, or status.
+        </p>
+      ) : null}
       {cards.length > 0 ? (
         <div className="card-grid">
           {cards.map((card, index) => (
@@ -179,7 +200,7 @@ export function OverviewPage() {
                 <select value={selectedMetric} onChange={(event) => setMetric(event.target.value)}>
                   {numeric.map((item) => (
                     <option key={item.metric} value={item.metric}>
-                      {item.metric}
+                      {definitions.data?.metrics.find((definition) => definition.key === item.metric)?.name ?? item.metric}
                     </option>
                   ))}
                 </select>
