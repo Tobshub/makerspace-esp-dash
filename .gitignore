@@ -18,3 +18,4 @@ infra/mosquitto/data
 .idea
 .vscode
 *.log
+.pio

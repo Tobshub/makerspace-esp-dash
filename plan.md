@@ -2406,15 +2406,15 @@ A user can configure a threshold and see an alert trigger and later resolve.
 
 Tasks:
 
-- [ ] Arduino or PlatformIO example
-- [ ] Wi-Fi connection
-- [ ] MQTT authentication
-- [ ] LWT
-- [ ] telemetry publishing
-- [ ] commands
-- [ ] acknowledgements
-- [ ] reconnect behavior
-- [ ] README
+- [x] Arduino or PlatformIO example
+- [x] Wi-Fi connection
+- [x] MQTT authentication
+- [x] LWT
+- [x] telemetry publishing
+- [x] commands
+- [x] acknowledgements
+- [x] reconnect behavior
+- [x] README
 
 Acceptance criteria:
 

@@ -172,7 +172,7 @@ The device page shows the simulator as online, with firmware `sim-1.0.0`. Use `-
 
 ## Physical ESP32
 
-The PlatformIO sketch in `examples/esp32-basic` is a skeleton. A device can still publish the telemetry JSON above with the credentials from the setup wizard. The wizard shows the presence topic and a Last Will payload. Phase 13 fills in Wi-Fi, reconnect, and commands.
+The PlatformIO sketch in `examples/esp32-basic` connects with the credentials from the setup wizard. Paste them into `src/main.cpp`, add the Wi-Fi network, and flash with `pio run -t upload`. It publishes sample temperature and humidity, sets a Last Will, and acknowledges `set_led`. See `examples/esp32-basic/README.md`.
 
 ## Tests
 

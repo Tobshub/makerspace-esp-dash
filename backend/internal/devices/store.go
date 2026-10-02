@@ -109,6 +109,7 @@ func FirmwareSnippet(host string, port int, projectID, deviceKey, secret string)
 //   Last Will payload: {"status":"offline"}
 //   On connect payload: {"status":"online"}
 // Subscribe commands: %s
+// Starter command: set_led {"enabled":true} or {"enabled":false}
 `, host, port, deviceKey, secret, projectID,
 		mqtt.DeviceTopic(projectID, deviceKey, "telemetry"),
 		mqtt.DeviceTopic(projectID, deviceKey, "state"),
