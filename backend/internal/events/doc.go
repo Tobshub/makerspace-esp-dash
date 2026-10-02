@@ -1,2 +1,2 @@
-// Package events will store device debug events.
+// Package events stores device debug rows. HTTP handlers do not write them.
 package events

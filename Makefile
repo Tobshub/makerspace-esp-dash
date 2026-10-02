@@ -1,4 +1,4 @@
-.PHONY: dev infra api web test lint migrate seed simulator
+.PHONY: dev infra api web test lint migrate seed simulator worker
 
 dev: infra
 	@echo "Infrastructure is up."
@@ -32,3 +32,6 @@ seed:
 
 simulator:
 	cd tools/device-simulator && go run . --help
+
+worker:
+	cd backend && go run ./cmd/worker

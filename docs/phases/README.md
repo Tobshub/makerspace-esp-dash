@@ -10,7 +10,7 @@ If time is short, `plan.md` section 85 is the cut order. The phase numbers below
 | 1 | [Infrastructure](01-infrastructure.md) | Done. Postgres, MQTT, health, migrations. |
 | 2 | [Teams and projects](02-teams-and-projects.md) | Done. Auth, teams, projects, authorization. |
 | 3 | [Device registry](03-device-registry.md) | Done. One-time device credentials. |
-| 4 | [MQTT ingestion](04-mqtt-ingestion.md) | Telemetry and state land in the database. |
+| 4 | [MQTT ingestion](04-mqtt-ingestion.md) | Done. Telemetry and state land in the database. |
 | 5 | [Device simulator](05-device-simulator.md) | Demo the pipeline without hardware. |
 | 6 | [Telemetry API](06-telemetry-api.md) | Latest and historical queries. |
 | 7 | [Realtime updates](07-realtime-updates.md) | Dashboard updates without refresh. |

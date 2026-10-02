@@ -67,6 +67,18 @@ creates a demo team, project, and device. Sign in as `demo@makerspace.local` wit
 
 Local Mosquitto listens on port 1883 and allows anonymous connections. See `infra/mosquitto/README.md`. Production must use TLS and per-device topic authorization. Do not put a broker admin password in firmware.
 
+The API subscribes to device topics and stores telemetry, state, and presence. Publish JSON to:
+
+```text
+makerspace/v1/projects/{projectId}/devices/{deviceKey}/telemetry
+```
+
+```json
+{"timestamp": 1700000000000, "metrics": {"temperature": 28.4, "pump_active": true}}
+```
+
+`timestamp` is optional Unix milliseconds. Set a retained Last Will on the `status` topic with `{"status":"offline"}`, and publish `{"status":"online"}` when the device connects. Devices that stop publishing are marked offline after `DEVICE_OFFLINE_TIMEOUT_SECONDS` (default 60).
+
 ## Simulator
 
 ```bash
@@ -78,7 +90,7 @@ MQTT publishing is Phase 5. Until then the command only checks flags.
 
 ## Physical ESP32
 
-The PlatformIO sketch in `examples/esp32-basic` is a skeleton. Phase 13 fills in Wi-Fi, MQTT, telemetry, and commands.
+The PlatformIO sketch in `examples/esp32-basic` is a skeleton. A device can still publish the telemetry JSON above with the credentials from the setup wizard. The wizard shows the presence topic and a Last Will payload. Phase 13 fills in Wi-Fi, reconnect, and commands.
 
 ## Tests
 
