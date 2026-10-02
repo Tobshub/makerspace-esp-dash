@@ -2,4 +2,4 @@
 
 Unit tests sit next to the package they cover (`internal/.../*_test.go`).
 
-Integration tests that need PostgreSQL or Mosquitto will be added under this directory starting in Phase 1. The end-to-end device loop is Phase 14.
+`internal/server/registry_test.go` signs in two users, checks project isolation, and checks that a device secret is returned once and stored only as a hash. It skips when PostgreSQL is not reachable.

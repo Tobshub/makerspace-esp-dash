@@ -13,6 +13,7 @@ import (
 
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/auth"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/config"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/devices"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/httpapi"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/projects"
@@ -65,6 +66,7 @@ func New(d Deps) *gin.Engine {
 	})
 	teams.Register(secured, d.Pool)
 	projects.Register(secured, d.Pool)
+	devices.Register(secured, d.Pool, hostOr(d.BrokerHost), portOr(d.BrokerPort))
 
 	router.NoRoute(func(c *gin.Context) {
 		httpapi.Error(c, http.StatusNotFound, "NOT_FOUND", "Not found")
@@ -113,6 +115,20 @@ type simpleError string
 func (e simpleError) Error() string { return string(e) }
 
 const errNoDatabase simpleError = "database not configured"
+
+func hostOr(host string) string {
+	if host == "" {
+		return "localhost"
+	}
+	return host
+}
+
+func portOr(port int) int {
+	if port == 0 {
+		return 1883
+	}
+	return port
+}
 
 func requestLog() gin.HandlerFunc {
 	return func(c *gin.Context) {

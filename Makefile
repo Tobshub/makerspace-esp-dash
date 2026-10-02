@@ -28,7 +28,7 @@ migrate:
 	cd backend && go run ./cmd/migrate
 
 seed:
-	@echo "Demo seed data arrives after teams, projects, and devices exist."
+	cd backend && go run ./cmd/seed
 
 simulator:
 	cd tools/device-simulator && go run . --help

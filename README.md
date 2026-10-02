@@ -57,6 +57,12 @@ Goose applies the SQL files in `backend/migrations`. Run this after `make infra`
 
 Open http://localhost:5173/login and create an account. The API uses a bearer token stored in the browser. A user can create a team and project, and cannot open another team's project.
 
+```bash
+make seed
+```
+
+creates a demo team, project, and device. Sign in as `demo@makerspace.local` with password `demo-password`. The device secret is printed once, on the first seed, and is not stored in plaintext.
+
 ## MQTT broker
 
 Local Mosquitto listens on port 1883 and allows anonymous connections. See `infra/mosquitto/README.md`. Production must use TLS and per-device topic authorization. Do not put a broker admin password in firmware.
