@@ -11,7 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/auth"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/config"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/httpapi"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/projects"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/teams"
 )
 
 // Deps are the process dependencies the router probes and serves.
@@ -31,14 +36,38 @@ func New(d Deps) *gin.Engine {
 	router.GET("/health", func(c *gin.Context) { writeStatus(c, d, false) })
 	router.GET("/ready", func(c *gin.Context) { writeStatus(c, d, true) })
 
-	router.GET("/api/v1", func(c *gin.Context) {
+	v1 := router.Group("/api/v1")
+	v1.GET("", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"service": "makerspace-esp-dash", "version": "v1"})
 	})
+	auth.PublicRoutes(v1, d.Pool)
+
+	secured := v1.Group("")
+	secured.Use(auth.Require(d.Pool))
+	auth.PrivateRoutes(secured, d.Pool)
+	secured.GET("/broker", func(c *gin.Context) {
+		host := d.BrokerHost
+		port := d.BrokerPort
+		if host == "" {
+			host = "localhost"
+		}
+		if port == 0 {
+			port = 1883
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"host":                  host,
+			"port":                  port,
+			"tls":                   false,
+			"offlineTimeoutSeconds": int(d.Config.DeviceOfflineTimeout / time.Second),
+			"anonymousLocal":        d.Config.MQTTUsername == "",
+			"topics":                mqtt.TopicTemplates(),
+		})
+	})
+	teams.Register(secured, d.Pool)
+	projects.Register(secured, d.Pool)
 
 	router.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": gin.H{"code": "NOT_FOUND", "message": "Not found"},
-		})
+		httpapi.Error(c, http.StatusNotFound, "NOT_FOUND", "Not found")
 	})
 	return router
 }

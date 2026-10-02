@@ -53,6 +53,10 @@ Goose applies the SQL files in `backend/migrations`. Run this after `make infra`
 
 `GET /health` returns 200 and reports whether PostgreSQL and MQTT are reachable. `GET /ready` returns 503 until both are connected.
 
+## Sign in
+
+Open http://localhost:5173/login and create an account. The API uses a bearer token stored in the browser. A user can create a team and project, and cannot open another team's project.
+
 ## MQTT broker
 
 Local Mosquitto listens on port 1883 and allows anonymous connections. See `infra/mosquitto/README.md`. Production must use TLS and per-device topic authorization. Do not put a broker admin password in firmware.

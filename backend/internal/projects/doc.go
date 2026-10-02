@@ -1,2 +1,2 @@
-// Package projects will own projects inside a team.
+// Package projects owns projects inside a team.
 package projects

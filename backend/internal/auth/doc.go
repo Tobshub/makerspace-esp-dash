@@ -1,2 +1,2 @@
-// Package auth will own user sessions and request identity.
+// Package auth owns user accounts and bearer sessions.
 package auth

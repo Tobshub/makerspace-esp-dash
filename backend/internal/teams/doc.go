@@ -1,2 +1,2 @@
-// Package teams will own teams and memberships.
+// Package teams owns teams and memberships.
 package teams
