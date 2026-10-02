@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useProjectStream } from '../live'
 import { useSession } from '../useSession'
 
 export function AppShell() {
@@ -22,7 +23,7 @@ export function AppShell() {
     selectProject(id)
     const match = location.pathname.match(/^\/projects\/[^/]+\/(.+)$/)
     if (!match) {
-      navigate(`/projects/${id}/devices`)
+      navigate(`/projects/${id}/overview`)
       return
     }
     const rest = match[1].startsWith('devices/') ? 'devices' : match[1]
@@ -90,8 +91,14 @@ export function AppShell() {
         )}
       </aside>
       <main>
+        {user && projectId ? <ProjectLive projectId={projectId} /> : null}
         <Outlet />
       </main>
     </div>
   )
+}
+
+function ProjectLive({ projectId }: { projectId: string }) {
+  useProjectStream(projectId)
+  return null
 }

@@ -13,11 +13,13 @@ import (
 
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/auth"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/config"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/dashboard"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/devices"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/httpapi"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/projects"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/readings"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/realtime"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/teams"
 )
 
@@ -29,6 +31,7 @@ type Deps struct {
 	MQTTUp       func() bool
 	BrokerHost   string
 	BrokerPort   int
+	Hub          *realtime.Hub
 }
 
 func New(d Deps) *gin.Engine {
@@ -69,6 +72,15 @@ func New(d Deps) *gin.Engine {
 	projects.Register(secured, d.Pool)
 	devices.Register(secured, d.Pool, hostOr(d.BrokerHost), portOr(d.BrokerPort))
 	readings.Register(secured, d.Pool)
+	dashboard.Register(secured, d.Pool)
+
+	hub := d.Hub
+	if hub == nil {
+		hub = realtime.New()
+	}
+	live := v1.Group("")
+	live.Use(auth.RequireStream(d.Pool))
+	realtime.Register(live, d.Pool, hub)
 
 	router.NoRoute(func(c *gin.Context) {
 		httpapi.Error(c, http.StatusNotFound, "NOT_FOUND", "Not found")

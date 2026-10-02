@@ -108,6 +108,37 @@ export type ProjectTelemetryLatest = {
   }[]
 }
 
+export type Overview = {
+  projectId: string
+  devices: {
+    total: number
+    online: number
+    offline: number
+    unknown: number
+    disabled: number
+  }
+  messagesToday: number
+  lastMessageAt: string | null
+  activeAlerts: number
+}
+
+export type DeviceState = {
+  deviceId: string
+  state: unknown
+  updatedAt: string | null
+}
+
+export type Activity = {
+  id: string
+  deviceId: string
+  deviceKey: string
+  deviceName: string
+  eventType: string
+  topic: string
+  payload: unknown
+  createdAt: string
+}
+
 export type BrokerInfo = {
   host: string
   port: number
@@ -206,6 +237,31 @@ export function deviceTelemetry(
 
 export function projectTelemetryLatest(projectId: string) {
   return api<ProjectTelemetryLatest>(`/api/v1/projects/${projectId}/telemetry/latest`)
+}
+
+export function projectOverview(projectId: string) {
+  return api<Overview>(`/api/v1/projects/${projectId}/overview`)
+}
+
+export function projectEvents(projectId: string, limit = 15) {
+  return api<{ events: Activity[] }>(`/api/v1/projects/${projectId}/events?limit=${limit}`)
+}
+
+export function deviceEvents(deviceId: string, params: { limit?: number; eventType?: string } = {}) {
+  const query = new URLSearchParams()
+  if (params.limit != null) query.set('limit', String(params.limit))
+  if (params.eventType) query.set('event_type', params.eventType)
+  const text = query.toString()
+  const suffix = text ? `?${text}` : ''
+  return api<{ events: Activity[] }>(`/api/v1/devices/${deviceId}/events${suffix}`)
+}
+
+export function deviceState(deviceId: string) {
+  return api<DeviceState>(`/api/v1/devices/${deviceId}/state`)
+}
+
+export function canWrite(role: string | undefined) {
+  return role === 'owner' || role === 'admin' || role === 'member'
 }
 
 export function formatTelemetry(value: Pick<TelemetryValue, 'numericValue' | 'booleanValue' | 'stringValue'>): string {

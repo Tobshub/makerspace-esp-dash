@@ -3,6 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   api,
+  deviceEvents,
+  deviceState,
+  deviceTelemetry,
   deviceTelemetryLatest,
   errorText,
   formatTelemetry,
@@ -10,25 +13,64 @@ import {
   type IssuedDevice,
 } from '../api/client'
 import { CopyButton } from '../components/CopyButton'
+import { StatusPill } from '../components/StatusPill'
+import { TelemetryChart } from '../components/TelemetryChart'
+import { chartRanges, eventLabel, formatWhen, isNumericMetric, rangeMs, wifiRssi } from '../format'
+import { liveInterval } from '../live'
+import { useNow } from '../useNow'
 
 export function DevicePage() {
   const { projectId = '', deviceId = '' } = useParams()
   const navigate = useNavigate()
+  const now = useNow()
   const queryClient = useQueryClient()
+  const [metricChoice, setMetricChoice] = useState('')
+  const [range, setRange] = useState<(typeof chartRanges)[number]['id']>('24h')
   const device = useQuery({
     queryKey: ['device', deviceId],
     queryFn: () => api<{ device: Device }>(`/api/v1/devices/${deviceId}`),
     refetchInterval: (query) => {
       const current = query.state.data?.device
       if (!current || current.status === 'disabled') return false
-      return 5000
+      return liveInterval()
     },
   })
   const latest = useQuery({
     queryKey: ['telemetry-latest', deviceId],
     queryFn: () => deviceTelemetryLatest(deviceId),
     enabled: deviceId !== '',
-    refetchInterval: 5000,
+    refetchInterval: liveInterval(),
+  })
+  const state = useQuery({
+    queryKey: ['device-state', deviceId],
+    queryFn: () => deviceState(deviceId),
+    enabled: deviceId !== '',
+    refetchInterval: liveInterval(),
+  })
+  const events = useQuery({
+    queryKey: ['device-events', deviceId],
+    queryFn: () => deviceEvents(deviceId, { limit: 20 }),
+    enabled: deviceId !== '',
+    refetchInterval: liveInterval(),
+  })
+  const commands = useQuery({
+    queryKey: ['device-commands', deviceId],
+    queryFn: () => deviceEvents(deviceId, { limit: 20, eventType: 'command_ack' }),
+    enabled: deviceId !== '',
+    refetchInterval: liveInterval(),
+  })
+  const numeric = latest.data?.metrics.filter(isNumericMetric) ?? []
+  const selectedMetric = numeric.some((item) => item.metric === metricChoice) ? metricChoice : (numeric[0]?.metric ?? '')
+  const historyFrom = new Date(now - rangeMs(range)).toISOString()
+  const history = useQuery({
+    queryKey: ['telemetry-series', deviceId, selectedMetric, range],
+    queryFn: () =>
+      deviceTelemetry(deviceId, {
+        metric: selectedMetric,
+        from: historyFrom,
+      }),
+    enabled: deviceId !== '' && selectedMetric !== '',
+    refetchInterval: liveInterval(),
   })
   const [draft, setDraft] = useState<{ name: string; description: string } | null>(null)
   const [error, setError] = useState<unknown>(null)
@@ -47,6 +89,7 @@ export function DevicePage() {
   }
 
   const waiting = !current.lastSeenAt && current.status !== 'online' && current.status !== 'disabled'
+  const rssi = wifiRssi(state.data?.state)
 
   async function save(event: FormEvent) {
     event.preventDefault()
@@ -105,9 +148,14 @@ export function DevicePage() {
       </p>
       {error ? <p className="error">{errorText(error)}</p> : null}
       <div className="card">
-        <p>Status: {current.status}</p>
+        <h2>Summary</h2>
+        <p>
+          Status: <StatusPill status={current.status} />
+        </p>
         <p>Firmware: {current.firmwareVersion || 'Unknown until the device connects.'}</p>
-        <p>Last seen: {current.lastSeenAt ? new Date(current.lastSeenAt).toLocaleString() : 'Never'}</p>
+        <p>Last seen: {current.lastSeenAt ? formatWhen(current.lastSeenAt, now) : 'Never'}</p>
+        <p>Wi-Fi RSSI: {rssi == null ? '—' : `${rssi} dBm`}</p>
+        <p>Created: {new Date(current.createdAt).toLocaleString()}</p>
         {waiting ? <p>Waiting for device…</p> : null}
         {current.status === 'disabled' ? <p>This device is disabled and should not connect.</p> : null}
       </div>
@@ -123,8 +171,97 @@ export function DevicePage() {
                 <span>{metric.metric}</span>
                 <span>
                   {formatTelemetry(metric)}{' '}
-                  <span className="muted">{new Date(metric.recordedAt).toLocaleString()}</span>
+                  <span className="muted">{formatWhen(metric.recordedAt, now)}</span>
                 </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      <div className="card">
+        <h2>Chart</h2>
+        {numeric.length === 0 ? (
+          <p className="muted">No numeric telemetry to chart yet.</p>
+        ) : (
+          <>
+            <div className="filters">
+              <label>
+                Metric
+                <select value={selectedMetric} onChange={(event) => setMetricChoice(event.target.value)}>
+                  {numeric.map((item) => (
+                    <option key={item.metric} value={item.metric}>
+                      {item.metric}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Range
+                <select
+                  value={range}
+                  onChange={(event) => setRange(event.target.value as (typeof chartRanges)[number]['id'])}
+                >
+                  {chartRanges.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {history.isLoading ? <p>Loading chart…</p> : null}
+            {history.isError ? <p className="error">{errorText(history.error)}</p> : null}
+            {history.data ? <TelemetryChart points={history.data.points} /> : null}
+            {history.data?.truncated ? <p className="muted">Showing the newest points in this window.</p> : null}
+          </>
+        )}
+      </div>
+      <div className="card">
+        <h2>State</h2>
+        {state.isLoading ? <p>Loading…</p> : null}
+        {state.isError ? <p className="error">{errorText(state.error)}</p> : null}
+        {state.data && state.data.state == null ? <p className="muted">No state reported yet.</p> : null}
+        {state.data?.state != null ? (
+          <>
+            <p className="muted">{state.data.updatedAt ? formatWhen(state.data.updatedAt, now) : null}</p>
+            <pre className="snippet">{JSON.stringify(state.data.state, null, 2)}</pre>
+          </>
+        ) : null}
+      </div>
+      <div className="card">
+        <h2>Commands</h2>
+        {commands.isLoading ? <p>Loading…</p> : null}
+        {commands.isError ? <p className="error">{errorText(commands.error)}</p> : null}
+        {commands.data && commands.data.events.length === 0 ? (
+          <p className="muted">No commands yet. Acknowledgements show up here when a device answers one.</p>
+        ) : null}
+        {commands.data && commands.data.events.length > 0 ? (
+          <ul className="metric-list">
+            {commands.data.events.map((event) => (
+              <li key={event.id}>
+                <span>Acknowledged</span>
+                <span className="muted">{formatWhen(event.createdAt, now)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {commands.data?.events.map((event) => (
+          <pre className="snippet" key={`${event.id}-payload`}>
+            {JSON.stringify(event.payload, null, 2)}
+          </pre>
+        ))}
+      </div>
+      <div className="card">
+        <h2>Events</h2>
+        {events.isLoading ? <p>Loading…</p> : null}
+        {events.isError ? <p className="error">{errorText(events.error)}</p> : null}
+        {events.data && events.data.events.length === 0 ? <p className="muted">No events yet.</p> : null}
+        {events.data && events.data.events.length > 0 ? (
+          <ul className="metric-list">
+            {events.data.events.map((event) => (
+              <li key={event.id}>
+                <span>{eventLabel(event.eventType)}</span>
+                <span className="muted">{formatWhen(event.createdAt, now)}</span>
               </li>
             ))}
           </ul>
@@ -140,7 +277,7 @@ export function DevicePage() {
       ) : (
         <p className="muted">The device secret is not stored and cannot be shown again. Rotate it if you need a new one.</p>
       )}
-      <form className="form" onSubmit={(event) => void save(event)}>
+      <form className="form" id="details" onSubmit={(event) => void save(event)}>
         <h2>Details</h2>
         <label>
           Name

@@ -10,6 +10,7 @@ import (
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/config"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/devices"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/realtime"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/telemetry"
 )
 
@@ -37,6 +38,19 @@ type Service struct {
 	offlineTimeout time.Duration
 	now            func() time.Time
 	limiter        *limiter
+	notify         func(projectID string, event realtime.Event)
+}
+
+// PublishTo fans stored changes out to browser subscribers. A nil publisher disables it.
+func (s *Service) PublishTo(p realtime.Publisher) {
+	if s == nil {
+		return
+	}
+	if p == nil {
+		s.notify = nil
+		return
+	}
+	s.notify = p.Publish
 }
 
 // FromConfig builds the ingestion service from process configuration.

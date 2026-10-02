@@ -40,12 +40,24 @@ func PrivateRoutes(r *gin.RouterGroup, pool *pgxpool.Pool) {
 }
 
 func Require(pool *pgxpool.Pool) gin.HandlerFunc {
+	return requireToken(pool, func(c *gin.Context) string {
+		return bearer(c.GetHeader("Authorization"))
+	})
+}
+
+// RequireStream accepts the bearer header or an access_token query value.
+// EventSource cannot set Authorization, so the project stream uses the query.
+func RequireStream(pool *pgxpool.Pool) gin.HandlerFunc {
+	return requireToken(pool, streamToken)
+}
+
+func requireToken(pool *pgxpool.Pool, token func(*gin.Context) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if pool == nil {
 			httpapi.Error(c, http.StatusServiceUnavailable, "UNAVAILABLE", "Database unavailable")
 			return
 		}
-		raw := bearer(c.GetHeader("Authorization"))
+		raw := token(c)
 		if raw == "" {
 			httpapi.Error(c, http.StatusUnauthorized, "UNAUTHORIZED", "Sign in required")
 			return
@@ -64,6 +76,17 @@ func Require(pool *pgxpool.Pool) gin.HandlerFunc {
 		c.Set("user_name", user.Name)
 		c.Next()
 	}
+}
+
+func streamToken(c *gin.Context) string {
+	if raw := bearer(c.GetHeader("Authorization")); raw != "" {
+		return raw
+	}
+	raw := strings.TrimSpace(c.Query("access_token"))
+	if raw == "" || len(raw) > 128 || strings.ContainsAny(raw, " \t\r\n") {
+		return ""
+	}
+	return raw
 }
 
 func Current(c *gin.Context) User {

@@ -10,6 +10,7 @@ import (
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/database"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/ingest"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/realtime"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/server"
 )
 
@@ -31,10 +32,12 @@ func main() {
 		slog.Error("mqtt broker url invalid")
 		host, port = "localhost", 1883
 	}
+	hub := realtime.New()
 	broker := mqtt.Connect(cfg.MQTTBrokerURL, cfg.MQTTUsername, cfg.MQTTPassword)
 	defer broker.Close()
 	if pool != nil {
 		incoming := ingest.FromConfig(pool, cfg)
+		incoming.PublishTo(hub)
 		broker.OnMessage(incoming.OnMQTT)
 		go incoming.RunSweep(context.Background())
 		slog.Info("mqtt ingest",
@@ -50,6 +53,7 @@ func main() {
 		MQTTUp:     broker.Connected,
 		BrokerHost: host,
 		BrokerPort: port,
+		Hub:        hub,
 	})
 	slog.Info("api listening", "addr", cfg.HTTPAddr)
 	if err := engine.Run(cfg.HTTPAddr); err != nil {

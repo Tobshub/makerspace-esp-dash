@@ -87,7 +87,18 @@ GET /api/v1/devices/{deviceId}/telemetry?metric=temperature&from=2026-10-01T00:0
 GET /api/v1/projects/{projectId}/telemetry/latest
 ```
 
-History defaults to the last 24 hours, `resolution=raw`, and at most 500 points. `1m`, `5m`, `1h`, and `1d` are reserved. The device page shows the latest values.
+History defaults to the last 24 hours, `resolution=raw`, and at most 500 points. `1m`, `5m`, `1h`, and `1d` are reserved.
+
+The project overview and device page read those values, plus:
+
+```text
+GET /api/v1/projects/{projectId}/overview
+GET /api/v1/projects/{projectId}/events
+GET /api/v1/devices/{deviceId}/state
+GET /api/v1/devices/{deviceId}/events
+```
+
+Open browsers also subscribe to `GET /api/v1/projects/{projectId}/stream` (Server-Sent Events). The page sends the session token as `access_token` because `EventSource` cannot set a bearer header. Telemetry, presence, state, and command acknowledgements update the open project without a manual refresh. The API process emits those events. A separate worker can still mark devices offline, and the page refetches about every 30 seconds.
 
 ## Simulator
 

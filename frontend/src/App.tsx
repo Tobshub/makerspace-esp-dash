@@ -7,6 +7,7 @@ import { DeviceWizardPage } from './pages/DeviceWizardPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
+import { OverviewPage } from './pages/OverviewPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProjectSettingsPage } from './pages/ProjectSettingsPage'
 import { TeamPage } from './pages/TeamPage'
@@ -23,7 +24,7 @@ export default function App() {
           <Route path="teams/:teamId" element={<TeamPage />} />
           <Route path="teams/:teamId/projects" element={<TeamProjectsPage />} />
           <Route path="projects/:projectId" element={<Navigate to="overview" replace />} />
-          <Route path="projects/:projectId/overview" element={<PlaceholderPage title="Overview" phase="Phase 8" />} />
+          <Route path="projects/:projectId/overview" element={<OverviewPage />} />
           <Route path="projects/:projectId/devices" element={<DevicesPage />} />
           <Route path="projects/:projectId/devices/new" element={<DeviceWizardPage />} />
           <Route path="projects/:projectId/devices/:deviceId" element={<DevicePage />} />

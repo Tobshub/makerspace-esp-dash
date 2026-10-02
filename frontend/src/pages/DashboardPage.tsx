@@ -53,7 +53,7 @@ export function DashboardPage() {
         <ul className="plain-list">
           {projects.map((project) => (
             <li key={project.id}>
-              <Link to={`/projects/${project.id}/devices`} onClick={() => selectProject(project.id)}>
+              <Link to={`/projects/${project.id}/overview`} onClick={() => selectProject(project.id)}>
                 {project.name}
               </Link>
             </li>

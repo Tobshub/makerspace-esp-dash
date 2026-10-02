@@ -267,6 +267,78 @@ td {
   vertical-align: top;
 }
 
+.stat-grid,
+.card-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card.stat {
+  margin: 0;
+}
+
+.stat-value {
+  margin: 4px 0;
+  font-size: 1.7rem;
+  font-weight: 650;
+}
+
+.filters,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+
+.filters label {
+  min-width: 160px;
+}
+
+button.small,
+.button.small {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+a.button.secondary {
+  background: transparent;
+  color: #1c1915;
+  border: 1px solid #cfc6bb;
+}
+
+.pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #efeae3;
+  font-size: 0.85rem;
+}
+
+.pill.online {
+  background: #e5f2e8;
+  color: #1f6b3a;
+}
+
+.pill.offline {
+  background: #f8e8e4;
+  color: #8f2d2d;
+}
+
+.pill.disabled,
+.pill.unknown {
+  background: #eceae6;
+  color: #4a453f;
+}
+
 @media (max-width: 720px) {
   .shell {
     grid-template-columns: 1fr;

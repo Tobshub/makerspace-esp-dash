@@ -12,6 +12,7 @@ import (
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/database"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/events"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/realtime"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/telemetry"
 )
 
@@ -117,7 +118,11 @@ func (s *Service) persist(ctx context.Context, device deviceRow, ch change) erro
 			return err
 		}
 	}
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	s.notifyChange(device, ch, when)
+	return nil
 }
 
 func pointValues(point telemetry.Point) (numeric, boolean, text any) {
@@ -181,6 +186,16 @@ func (s *Service) Sweep(ctx context.Context) (int, error) {
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return 0, err
+	}
+	if s.notify != nil {
+		for _, item := range found {
+			s.notify(item.project, realtime.Event{
+				Type:      realtime.DeviceOffline,
+				DeviceID:  item.id,
+				Timestamp: now,
+				Data:      map[string]string{"reason": "timeout"},
+			})
+		}
 	}
 	return len(found), nil
 }
