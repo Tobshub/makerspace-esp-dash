@@ -18,6 +18,7 @@ type Config struct {
 	MQTTUsername             string
 	MQTTPassword             string
 	DeviceOfflineTimeout     time.Duration
+	CommandTimeout           time.Duration
 	AppURL                   string
 	APIURL                   string
 	TelemetryRetentionDays   int
@@ -38,6 +39,7 @@ func Load() Config {
 		MQTTUsername:             os.Getenv("MQTT_USERNAME"),
 		MQTTPassword:             os.Getenv("MQTT_PASSWORD"),
 		DeviceOfflineTimeout:     time.Duration(envInt("DEVICE_OFFLINE_TIMEOUT_SECONDS", 60)) * time.Second,
+		CommandTimeout:           time.Duration(envInt("COMMAND_TIMEOUT_SECONDS", 30)) * time.Second,
 		AppURL:                   env("APP_URL", "http://localhost:5173"),
 		APIURL:                   env("API_URL", "http://localhost:8080"),
 		TelemetryRetentionDays:   envInt("TELEMETRY_RETENTION_DAYS", 90),

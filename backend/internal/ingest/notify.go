@@ -53,6 +53,14 @@ func (s *Service) notifyChange(device deviceRow, ch change, when time.Time) {
 			Data:      json.RawMessage(append([]byte(nil), ch.payload...)),
 		})
 	}
+	if ch.eventType != "" {
+		s.notify(device.ProjectID, realtime.Event{
+			Type:      realtime.DeviceEvent,
+			DeviceID:  device.ID,
+			Timestamp: when,
+			Data:      map[string]string{"eventType": ch.eventType},
+		})
+	}
 }
 
 func metricData(points []telemetry.Point) map[string]any {

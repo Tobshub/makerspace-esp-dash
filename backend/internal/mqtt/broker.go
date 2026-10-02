@@ -157,6 +157,18 @@ func (b *Broker) Port() int {
 	return b.port
 }
 
+// Publish sends one message and waits for the broker handshake.
+func (b *Broker) Publish(topic string, qos byte, retained bool, payload []byte) error {
+	if b == nil || b.client == nil || !b.client.IsConnectionOpen() {
+		return fmt.Errorf("mqtt not connected")
+	}
+	token := b.client.Publish(topic, qos, retained, payload)
+	if !token.WaitTimeout(5 * time.Second) {
+		return fmt.Errorf("mqtt publish timed out")
+	}
+	return token.Error()
+}
+
 func (b *Broker) Close() {
 	if b != nil && b.client != nil {
 		b.client.Disconnect(250)

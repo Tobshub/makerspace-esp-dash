@@ -148,7 +148,9 @@ export function OverviewPage() {
       {(counts?.unknown ?? 0) > 0 ? (
         <p className="muted">{counts?.unknown} waiting for a first connection.</p>
       ) : null}
-      <p className="muted">Active alerts: {overview.data?.activeAlerts ?? 0}</p>
+      <p className="muted">
+        <Link to={`/projects/${projectId}/alerts`}>Active alerts: {overview.data?.activeAlerts ?? 0}</Link>
+      </p>
 
       {definitions.isError ? <p className="error">{errorText(definitions.error)}</p> : null}
       <MetricWidgets definitions={definitions.data?.metrics ?? []} devices={widgetDevices} />

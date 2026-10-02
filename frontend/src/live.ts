@@ -121,9 +121,32 @@ export function applyLiveEvent(queryClient: QueryClient, projectId: string, even
 
   if (event.type === 'command.updated') {
     void queryClient.invalidateQueries({ queryKey: ['device-commands', event.deviceId] })
+    void queryClient.invalidateQueries({ queryKey: ['command'] })
     void queryClient.invalidateQueries({ queryKey: ['device-events', event.deviceId] })
     void queryClient.invalidateQueries({ queryKey: ['project-events', projectId] })
   }
+
+  if (event.type === 'device.event') {
+    void queryClient.invalidateQueries({ queryKey: ['project-events', projectId] })
+    void queryClient.invalidateQueries({ queryKey: ['device-events', event.deviceId] })
+  }
+
+  if (event.type === 'alert.triggered' || event.type === 'alert.resolved') {
+    const message = isRecord(event.data) && typeof event.data.message === 'string' ? event.data.message : 'Alert updated'
+    queryClient.setQueryData<AlertNotice[]>(['alert-notices', projectId], (old) =>
+      [{ id: `${event.timestamp}-${event.type}-${event.deviceId}`, kind: event.type, message, at: event.timestamp }, ...(old ?? [])].slice(0, 5),
+    )
+    void queryClient.invalidateQueries({ queryKey: ['alert-events', projectId] })
+    void queryClient.invalidateQueries({ queryKey: ['alerts', projectId] })
+    void queryClient.invalidateQueries({ queryKey: ['project-overview', projectId] })
+  }
+}
+
+export type AlertNotice = {
+  id: string
+  kind: string
+  message: string
+  at: string
 }
 
 function refreshProject(queryClient: QueryClient, projectId: string) {
@@ -137,6 +160,9 @@ function refreshProject(queryClient: QueryClient, projectId: string) {
   void queryClient.invalidateQueries({ queryKey: ['device-state'] })
   void queryClient.invalidateQueries({ queryKey: ['device-events'] })
   void queryClient.invalidateQueries({ queryKey: ['device-commands'] })
+  void queryClient.invalidateQueries({ queryKey: ['command'] })
+  void queryClient.invalidateQueries({ queryKey: ['alerts', projectId] })
+  void queryClient.invalidateQueries({ queryKey: ['alert-events', projectId] })
 }
 
 function patchDevice(queryClient: QueryClient, projectId: string, deviceId: string, patch: Partial<Device>) {

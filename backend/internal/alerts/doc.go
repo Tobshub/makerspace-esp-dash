@@ -1,2 +1,2 @@
-// Package alerts will evaluate threshold and offline rules.
+// Package alerts evaluates threshold and offline rules.
 package alerts

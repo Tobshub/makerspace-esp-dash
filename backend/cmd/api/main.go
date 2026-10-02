@@ -54,6 +54,7 @@ func main() {
 		BrokerHost: host,
 		BrokerPort: port,
 		Hub:        hub,
+		Publisher:  broker,
 	})
 	slog.Info("api listening", "addr", cfg.HTTPAddr)
 	if err := engine.Run(cfg.HTTPAddr); err != nil {

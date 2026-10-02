@@ -3,6 +3,7 @@ package dashboard
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -36,11 +37,11 @@ func handleProjectEvents(c *gin.Context, pool *pgxpool.Pool) {
 	if !member(c, pool, projectID) {
 		return
 	}
-	eventType, limit, ok := eventQuery(c)
+	filter, ok := eventQuery(c)
 	if !ok {
 		return
 	}
-	items, err := projectEvents(c.Request.Context(), pool, projectID, eventType, limit)
+	items, err := projectEvents(c.Request.Context(), pool, projectID, filter)
 	if httpapi.WriteRead(c, err) {
 		return
 	}
@@ -52,11 +53,11 @@ func handleDeviceEvents(c *gin.Context, pool *pgxpool.Pool) {
 	if !ok {
 		return
 	}
-	eventType, limit, ok := eventQuery(c)
+	filter, ok := eventQuery(c)
 	if !ok {
 		return
 	}
-	items, err := deviceEvents(c.Request.Context(), pool, deviceID, eventType, limit)
+	items, err := deviceEvents(c.Request.Context(), pool, deviceID, filter)
 	if httpapi.WriteRead(c, err) {
 		return
 	}
@@ -102,20 +103,48 @@ func authorizeDevice(c *gin.Context, pool *pgxpool.Pool) (string, bool) {
 	return deviceID, true
 }
 
-func eventQuery(c *gin.Context) (string, int, bool) {
-	eventType := c.Query("event_type")
-	if len(eventType) > 64 {
+func eventQuery(c *gin.Context) (EventFilter, bool) {
+	filter := EventFilter{Limit: 20}
+	filter.EventType = c.Query("event_type")
+	if len(filter.EventType) > 64 {
 		httpapi.Validation(c, map[string]string{"event_type": "Must be 64 characters or fewer"})
-		return "", 0, false
+		return EventFilter{}, false
 	}
-	limit := 20
+	filter.DeviceID = c.Query("device_id")
+	if filter.DeviceID != "" && !httpapi.ValidID(filter.DeviceID) {
+		httpapi.Validation(c, map[string]string{"device_id": "Must be a device id"})
+		return EventFilter{}, false
+	}
+	from, ok := queryTime(c, "from")
+	if !ok {
+		return EventFilter{}, false
+	}
+	to, ok := queryTime(c, "to")
+	if !ok {
+		return EventFilter{}, false
+	}
+	filter.From = from
+	filter.To = to
 	if raw := c.Query("limit"); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil || n < 1 || n > 100 {
 			httpapi.Validation(c, map[string]string{"limit": "Must be from 1 to 100"})
-			return "", 0, false
+			return EventFilter{}, false
 		}
-		limit = n
+		filter.Limit = n
 	}
-	return eventType, limit, true
+	return filter, true
+}
+
+func queryTime(c *gin.Context, name string) (*time.Time, bool) {
+	raw := c.Query(name)
+	if raw == "" {
+		return nil, true
+	}
+	parsed, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		httpapi.Validation(c, map[string]string{name: "Must be an RFC3339 timestamp"})
+		return nil, false
+	}
+	return &parsed, true
 }

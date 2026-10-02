@@ -74,19 +74,40 @@ func overview(ctx context.Context, pool *pgxpool.Pool, projectID string) (Overvi
 	err = pool.QueryRow(ctx, `
 		SELECT max(received_at) FROM telemetry WHERE project_id = $1
 	`, database.ID(projectID)).Scan(&out.LastMessageAt)
+	if err != nil {
+		return Overview{}, err
+	}
+	err = pool.QueryRow(ctx, `
+		SELECT count(*)
+		FROM alert_events e
+		JOIN alert_rules r ON r.id = e.alert_rule_id
+		WHERE r.project_id = $1 AND e.status = 'triggered'
+	`, database.ID(projectID)).Scan(&out.ActiveAlerts)
 	return out, err
 }
 
-func projectEvents(ctx context.Context, pool *pgxpool.Pool, projectID, eventType string, limit int) ([]Activity, error) {
+// EventFilter narrows a debug log. Empty fields are ignored.
+type EventFilter struct {
+	EventType string
+	DeviceID  string
+	From      *time.Time
+	To        *time.Time
+	Limit     int
+}
+
+func projectEvents(ctx context.Context, pool *pgxpool.Pool, projectID string, filter EventFilter) ([]Activity, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT e.id::text, e.device_id::text, d.device_key, d.name, e.event_type, e.topic, e.payload, e.created_at
 		FROM device_events e
 		JOIN devices d ON d.id = e.device_id
 		WHERE e.project_id = $1
 		  AND ($2 = '' OR e.event_type = $2)
+		  AND ($3 = '' OR e.device_id::text = $3)
+		  AND ($4::timestamptz IS NULL OR e.created_at >= $4)
+		  AND ($5::timestamptz IS NULL OR e.created_at <= $5)
 		ORDER BY e.created_at DESC, e.id DESC
-		LIMIT $3
-	`, database.ID(projectID), eventType, limit)
+		LIMIT $6
+	`, database.ID(projectID), filter.EventType, filter.DeviceID, filter.From, filter.To, filter.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -94,16 +115,18 @@ func projectEvents(ctx context.Context, pool *pgxpool.Pool, projectID, eventType
 	return scanActivity(rows)
 }
 
-func deviceEvents(ctx context.Context, pool *pgxpool.Pool, deviceID, eventType string, limit int) ([]Activity, error) {
+func deviceEvents(ctx context.Context, pool *pgxpool.Pool, deviceID string, filter EventFilter) ([]Activity, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT e.id::text, e.device_id::text, d.device_key, d.name, e.event_type, e.topic, e.payload, e.created_at
 		FROM device_events e
 		JOIN devices d ON d.id = e.device_id
 		WHERE e.device_id = $1
 		  AND ($2 = '' OR e.event_type = $2)
+		  AND ($3::timestamptz IS NULL OR e.created_at >= $3)
+		  AND ($4::timestamptz IS NULL OR e.created_at <= $4)
 		ORDER BY e.created_at DESC, e.id DESC
-		LIMIT $3
-	`, database.ID(deviceID), eventType, limit)
+		LIMIT $5
+	`, database.ID(deviceID), filter.EventType, filter.From, filter.To, filter.Limit)
 	if err != nil {
 		return nil, err
 	}

@@ -24,6 +24,16 @@ func (c *capture) Publish(_ string, event realtime.Event) {
 	c.events = append(c.events, event)
 }
 
+func without(values []string, skip string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if value != skip {
+			out = append(out, value)
+		}
+	}
+	return out
+}
+
 func (c *capture) types() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -67,7 +77,7 @@ func TestIngestPublishesRealtime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	types := got.types()
+	types := without(got.types(), realtime.DeviceEvent)
 	want := []string{
 		realtime.DeviceOnline,
 		realtime.TelemetryReceived,

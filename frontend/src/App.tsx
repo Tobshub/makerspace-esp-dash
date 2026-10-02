@@ -7,9 +7,11 @@ import { DeviceWizardPage } from './pages/DeviceWizardPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
+import { AlertsPage } from './pages/AlertsPage'
+import { ControlsPage } from './pages/ControlsPage'
+import { EventsPage } from './pages/EventsPage'
 import { MetricsPage } from './pages/MetricsPage'
 import { OverviewPage } from './pages/OverviewPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProjectSettingsPage } from './pages/ProjectSettingsPage'
 import { TeamPage } from './pages/TeamPage'
 import { TeamProjectsPage } from './pages/TeamProjectsPage'
@@ -30,9 +32,9 @@ export default function App() {
           <Route path="projects/:projectId/devices/new" element={<DeviceWizardPage />} />
           <Route path="projects/:projectId/devices/:deviceId" element={<DevicePage />} />
           <Route path="projects/:projectId/metrics" element={<MetricsPage />} />
-          <Route path="projects/:projectId/controls" element={<PlaceholderPage title="Controls" phase="Phase 10" />} />
-          <Route path="projects/:projectId/alerts" element={<PlaceholderPage title="Alerts" phase="Phase 12" />} />
-          <Route path="projects/:projectId/events" element={<PlaceholderPage title="Events" phase="Phase 11" />} />
+          <Route path="projects/:projectId/controls" element={<ControlsPage />} />
+          <Route path="projects/:projectId/alerts" element={<AlertsPage />} />
+          <Route path="projects/:projectId/events" element={<EventsPage />} />
           <Route path="projects/:projectId/settings" element={<ProjectSettingsPage />} />
         </Route>
       </Route>

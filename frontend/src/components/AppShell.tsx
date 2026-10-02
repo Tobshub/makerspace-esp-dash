@@ -1,5 +1,6 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { useProjectStream } from '../live'
+import { useProjectStream, type AlertNotice } from '../live'
 import { useSession } from '../useSession'
 
 export function AppShell() {
@@ -92,6 +93,7 @@ export function AppShell() {
       </aside>
       <main>
         {user && projectId ? <ProjectLive projectId={projectId} /> : null}
+        {user && projectId ? <AlertNotices projectId={projectId} /> : null}
         <Outlet />
       </main>
     </div>
@@ -101,4 +103,35 @@ export function AppShell() {
 function ProjectLive({ projectId }: { projectId: string }) {
   useProjectStream(projectId)
   return null
+}
+
+function AlertNotices({ projectId }: { projectId: string }) {
+  const queryClient = useQueryClient()
+  const notices = useQuery<AlertNotice[]>({
+    queryKey: ['alert-notices', projectId],
+    queryFn: async () => [],
+    initialData: [],
+    staleTime: Infinity,
+  })
+  if (!notices.data.length) return null
+  return (
+    <div className="stack">
+      {notices.data.map((notice) => (
+        <div className={notice.kind === 'alert.triggered' ? 'banner warn' : 'banner'} key={notice.id}>
+          <span>{notice.message}</span>
+          <button
+            type="button"
+            className="small secondary"
+            onClick={() => {
+              queryClient.setQueryData<AlertNotice[]>(['alert-notices', projectId], (old) =>
+                (old ?? []).filter((item) => item.id !== notice.id),
+              )
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      ))}
+    </div>
+  )
 }

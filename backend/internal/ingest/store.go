@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/alerts"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/database"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/events"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
@@ -61,7 +63,18 @@ func (s *Service) writeError(ctx context.Context, device deviceRow, topic, reaso
 	if err != nil {
 		return err
 	}
-	return events.Insert(ctx, s.pool, device.ProjectID, device.ID, "error", topic, payload)
+	if err := events.Insert(ctx, s.pool, device.ProjectID, device.ID, "error", topic, payload); err != nil {
+		return err
+	}
+	if s.notify != nil {
+		s.notify(device.ProjectID, realtime.Event{
+			Type:      realtime.DeviceEvent,
+			DeviceID:  device.ID,
+			Timestamp: s.now().UTC(),
+			Data:      map[string]string{"eventType": "error"},
+		})
+	}
+	return nil
 }
 
 func (s *Service) persist(ctx context.Context, device deviceRow, ch change) error {
@@ -122,6 +135,16 @@ func (s *Service) persist(ctx context.Context, device deviceRow, ch change) erro
 		return err
 	}
 	s.notifyChange(device, ch, when)
+	if err := alerts.OnIngest(ctx, s.pool, alerts.Sample{
+		ProjectID:      device.ProjectID,
+		DeviceID:       device.ID,
+		PreviousStatus: device.Status,
+		Status:         ch.status,
+		Points:         ch.points,
+		At:             when,
+	}, s.notify); err != nil {
+		slog.Error("alerts", "err", err, "device_id", device.ID)
+	}
 	return nil
 }
 

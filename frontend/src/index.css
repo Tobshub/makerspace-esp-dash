@@ -197,6 +197,15 @@ button:disabled {
   color: #f4f1ea;
 }
 
+.banner.warn {
+  background: #f8e8e4;
+  color: #1c1915;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
 .muted,
 .who {
   color: #4a453f;
@@ -340,9 +349,42 @@ a.button.secondary {
   color: #4a453f;
 }
 
-.pill.on {
+.pill.on,
+.pill.acknowledged,
+.pill.resolved {
   background: #e5f2e8;
   color: #1f6b3a;
+}
+
+.pill.pending,
+.pill.published {
+  background: #fff4d6;
+  color: #6b5316;
+}
+
+.pill.failed,
+.pill.timed_out,
+.pill.triggered {
+  background: #f8e8e4;
+  color: #8f2d2d;
+}
+
+.event-log {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.event-log details {
+  border-top: 1px solid #e4ddd2;
+  padding: 8px 0;
+}
+
+.event-log summary {
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
 
 tr.selected td {

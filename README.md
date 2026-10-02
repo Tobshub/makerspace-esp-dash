@@ -111,7 +111,40 @@ DELETE /api/v1/metrics/{metricId}
 
 Discovered keys are telemetry fields that do not have a definition yet. A definition sets the display name, unit, data type (`number`, `boolean`, `string`), display type (`number`, `line`, `gauge`, `boolean`, `status`, `text`), and optional min/max. The overview draws a widget from that display type. Telemetry is stored either way.
 
-Open browsers also subscribe to `GET /api/v1/projects/{projectId}/stream` (Server-Sent Events). The page sends the session token as `access_token` because `EventSource` cannot set a bearer header. Telemetry, presence, state, and command acknowledgements update the open project without a manual refresh. The API process emits those events. A separate worker can still mark devices offline, and the page refetches about every 30 seconds.
+Send a command without waiting for the device:
+
+```text
+POST /api/v1/devices/{deviceId}/commands
+GET  /api/v1/devices/{deviceId}/commands
+GET  /api/v1/commands/{commandId}
+```
+
+```json
+{"command": "set_pump", "payload": {"enabled": true}}
+```
+
+The response is `pending`. The API then publishes QoS 1 to the device command topic. Status becomes `published`, then `acknowledged` or `failed` when the device posts `commands/ack`, or `timed_out` after `COMMAND_TIMEOUT_SECONDS` (default 30). The Controls page maps a button, toggle, or slider onto that command.
+
+The events log accepts `event_type`, `device_id`, `from`, and `to`:
+
+```text
+GET /api/v1/projects/{projectId}/events?event_type=command&device_id={deviceId}
+GET /api/v1/devices/{deviceId}/events
+```
+
+Threshold and offline alerts:
+
+```text
+GET    /api/v1/projects/{projectId}/alerts
+POST   /api/v1/projects/{projectId}/alerts
+PATCH  /api/v1/alerts/{alertId}
+DELETE /api/v1/alerts/{alertId}
+GET    /api/v1/projects/{projectId}/alert-events
+```
+
+A threshold uses `>`, `>=`, `<`, `<=`, `==`, or `!=`. `durationSeconds` waits out a short spike. `0` alerts on the crossing sample. One active alert is kept per rule and device, then marked resolved when the condition clears.
+
+Open browsers also subscribe to `GET /api/v1/projects/{projectId}/stream` (Server-Sent Events). The page sends the session token as `access_token` because `EventSource` cannot set a bearer header. Telemetry, presence, state, commands, and alerts update the open project without a manual refresh. The API process emits those events. A separate worker can still mark devices offline, and the page refetches about every 30 seconds.
 
 ## Simulator
 

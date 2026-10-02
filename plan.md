@@ -2351,15 +2351,15 @@ A team can turn an arbitrary telemetry key into a useful dashboard visualization
 
 Tasks:
 
-- [ ] command persistence
-- [ ] MQTT command publishing
-- [ ] acknowledgement handling
-- [ ] timeout handling
-- [ ] controls CRUD
-- [ ] button control
-- [ ] toggle control
-- [ ] slider control
-- [ ] UI command status
+- [x] command persistence
+- [x] MQTT command publishing
+- [x] acknowledgement handling
+- [x] timeout handling
+- [x] controls CRUD
+- [x] button control
+- [x] toggle control
+- [x] slider control
+- [x] UI command status
 
 Acceptance criteria:
 
@@ -2371,12 +2371,12 @@ A user can control a simulated device or ESP32 from the dashboard and see whethe
 
 Tasks:
 
-- [ ] store device events
-- [ ] project events endpoint
-- [ ] realtime event stream
-- [ ] event filtering
-- [ ] expandable JSON payloads
-- [ ] device-specific logs
+- [x] store device events
+- [x] project events endpoint
+- [x] realtime event stream
+- [x] event filtering
+- [x] expandable JSON payloads
+- [x] device-specific logs
 
 Acceptance criteria:
 
@@ -2388,13 +2388,13 @@ A Makerspace team can diagnose whether their ESP32 is connecting, sending data, 
 
 Tasks:
 
-- [ ] alert rule model
-- [ ] threshold evaluation
-- [ ] offline rule
-- [ ] alert lifecycle
-- [ ] active alerts UI
-- [ ] alert history
-- [ ] realtime alert notification
+- [x] alert rule model
+- [x] threshold evaluation
+- [x] offline rule
+- [x] alert lifecycle
+- [x] active alerts UI
+- [x] alert history
+- [x] realtime alert notification
 
 Acceptance criteria:
 

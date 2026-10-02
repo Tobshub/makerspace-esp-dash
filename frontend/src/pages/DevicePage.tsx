@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   api,
+  deviceCommands,
   deviceEvents,
   deviceState,
   deviceTelemetry,
@@ -17,7 +18,7 @@ import { CopyButton } from '../components/CopyButton'
 import { MetricWidgets } from '../components/MetricWidgets'
 import { StatusPill } from '../components/StatusPill'
 import { TelemetryChart } from '../components/TelemetryChart'
-import { chartRanges, eventLabel, formatDefined, formatWhen, isNumericMetric, rangeMs, wifiRssi } from '../format'
+import { chartRanges, commandStatusLabel, eventLabel, formatDefined, formatWhen, isNumericMetric, rangeMs, wifiRssi } from '../format'
 import { liveInterval } from '../live'
 import { useNow } from '../useNow'
 
@@ -57,7 +58,7 @@ export function DevicePage() {
   })
   const commands = useQuery({
     queryKey: ['device-commands', deviceId],
-    queryFn: () => deviceEvents(deviceId, { limit: 20, eventType: 'command_ack' }),
+    queryFn: () => deviceCommands(deviceId),
     enabled: deviceId !== '',
     refetchInterval: liveInterval(),
   })
@@ -254,24 +255,21 @@ export function DevicePage() {
         <h2>Commands</h2>
         {commands.isLoading ? <p>Loading…</p> : null}
         {commands.isError ? <p className="error">{errorText(commands.error)}</p> : null}
-        {commands.data && commands.data.events.length === 0 ? (
-          <p className="muted">No commands yet. Acknowledgements show up here when a device answers one.</p>
+        {commands.data && commands.data.commands.length === 0 ? (
+          <p className="muted">No commands yet. Send one from Controls.</p>
         ) : null}
-        {commands.data && commands.data.events.length > 0 ? (
+        {commands.data && commands.data.commands.length > 0 ? (
           <ul className="metric-list">
-            {commands.data.events.map((event) => (
-              <li key={event.id}>
-                <span>Acknowledged</span>
-                <span className="muted">{formatWhen(event.createdAt, now)}</span>
+            {commands.data.commands.map((command) => (
+              <li key={command.id}>
+                <span>
+                  {command.command} <span className={`pill ${command.status}`}>{commandStatusLabel(command.status)}</span>
+                </span>
+                <span className="muted">{formatWhen(command.requestedAt, now)}</span>
               </li>
             ))}
           </ul>
         ) : null}
-        {commands.data?.events.map((event) => (
-          <pre className="snippet" key={`${event.id}-payload`}>
-            {JSON.stringify(event.payload, null, 2)}
-          </pre>
-        ))}
       </div>
       <div className="card">
         <h2>Events</h2>

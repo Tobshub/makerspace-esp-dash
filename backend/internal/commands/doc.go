@@ -1,2 +1,2 @@
-// Package commands will persist commands and track acknowledgements.
+// Package commands stores dashboard commands, publishes them, and applies acknowledgements.
 package commands

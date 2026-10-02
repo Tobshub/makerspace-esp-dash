@@ -25,13 +25,54 @@ export function eventLabel(eventType: string): string {
       return 'Online'
     case 'disconnected':
       return 'Offline'
+    case 'command':
+      return 'Command'
     case 'command_ack':
-      return 'Command acknowledged'
+      return 'Acknowledged'
     case 'error':
       return 'Error'
     default:
       return eventType
   }
+}
+
+export function commandStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending':
+      return 'Sending'
+    case 'published':
+      return 'Sent'
+    case 'acknowledged':
+      return 'Acknowledged'
+    case 'failed':
+      return 'Failed'
+    case 'timed_out':
+      return 'Timed out'
+    default:
+      return status
+  }
+}
+
+export function eventSummary(eventType: string, payload: unknown): string {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return ''
+  const record = payload as Record<string, unknown>
+  if (eventType === 'telemetry' && record.metrics && typeof record.metrics === 'object' && !Array.isArray(record.metrics)) {
+    return Object.entries(record.metrics as Record<string, unknown>)
+      .map(([key, value]) => `${key}=${String(value)}`)
+      .join(' ')
+  }
+  if (eventType === 'command') {
+    const name = typeof record.command === 'string' ? record.command : 'command'
+    return record.payload ? `${name} ${JSON.stringify(record.payload)}` : name
+  }
+  if (eventType === 'command_ack') {
+    if (record.success === true) return 'success'
+    if (typeof record.error === 'string' && record.error) return record.error
+    return record.success === false ? 'failed' : ''
+  }
+  if (eventType === 'error' && typeof record.reason === 'string') return record.reason
+  if (typeof record.status === 'string') return record.status
+  return ''
 }
 
 export function wifiRssi(state: unknown): number | null {

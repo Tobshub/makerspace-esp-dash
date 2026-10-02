@@ -7,6 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/alerts"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/commands"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/config"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/devices"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
@@ -27,6 +29,7 @@ type Options struct {
 	MaxKeyLength       int
 	MaxStringLength    int
 	TelemetryPerSecond int
+	CommandTimeout     time.Duration
 	Now                func() time.Time
 }
 
@@ -36,6 +39,7 @@ type Service struct {
 	limits         telemetry.Limits
 	maxPayload     int
 	offlineTimeout time.Duration
+	commandTimeout time.Duration
 	now            func() time.Time
 	limiter        *limiter
 	notify         func(projectID string, event realtime.Event)
@@ -62,6 +66,7 @@ func FromConfig(pool *pgxpool.Pool, cfg config.Config) *Service {
 		MaxKeyLength:       cfg.MQTTMaxKeyLength,
 		MaxStringLength:    cfg.MQTTMaxStringLength,
 		TelemetryPerSecond: cfg.MQTTTelemetryPerSecond,
+		CommandTimeout:     cfg.CommandTimeout,
 	})
 }
 
@@ -76,6 +81,9 @@ func New(pool *pgxpool.Pool, opt Options) *Service {
 	if opt.MaxPayloadBytes <= 0 {
 		opt.MaxPayloadBytes = defaultPayloadBytes
 	}
+	if opt.CommandTimeout <= 0 {
+		opt.CommandTimeout = 30 * time.Second
+	}
 	return &Service{
 		pool: pool,
 		limits: telemetry.Limits{
@@ -86,6 +94,7 @@ func New(pool *pgxpool.Pool, opt Options) *Service {
 		maxPayload:     opt.MaxPayloadBytes,
 		offlineTimeout: opt.OfflineTimeout,
 		now:            opt.Now,
+		commandTimeout: opt.CommandTimeout,
 		limiter:        newLimiter(opt.TelemetryPerSecond, opt.Now),
 	}
 }
@@ -303,14 +312,31 @@ func (s *Service) ingestAck(ctx context.Context, device deviceRow, topic string,
 		slog.Warn("ingest rejected", "reason", err.Error(), "project_id", device.ProjectID, "device_id", device.ID, "device_key", device.DeviceKey, "mqtt_topic", topic)
 		return s.writeError(ctx, device, topic, err.Error())
 	}
-	return s.persist(ctx, device, change{
+	if err := s.persist(ctx, device, change{
 		status:        devices.StatusOnline,
 		touchLastSeen: true,
 		eventType:     "command_ack",
 		topic:         topic,
 		payload:       payload,
 		received:      s.now().UTC(),
+	}); err != nil {
+		return err
+	}
+	ack, err := commands.ParseAck(payload)
+	if err != nil {
+		return nil
+	}
+	updated, err := commands.ApplyAck(ctx, s.pool, device.ID, ack, s.now().UTC())
+	if err != nil || updated == nil || s.notify == nil {
+		return err
+	}
+	s.notify(device.ProjectID, realtime.Event{
+		Type:      realtime.CommandUpdated,
+		DeviceID:  device.ID,
+		Timestamp: s.now().UTC(),
+		Data:      updated,
 	})
+	return nil
 }
 
 func (s *Service) fresh(device deviceRow) bool {
@@ -343,5 +369,11 @@ func (s *Service) RunSweep(ctx context.Context) {
 func (s *Service) sweepOnce(ctx context.Context) {
 	if _, err := s.Sweep(ctx); err != nil {
 		slog.Error("offline sweep", "err", err)
+	}
+	if err := alerts.EvaluateOffline(ctx, s.pool, s.now().UTC(), s.notify); err != nil {
+		slog.Error("offline alerts", "err", err)
+	}
+	if _, err := commands.Expire(ctx, s.pool, s.now().UTC(), s.commandTimeout, s.notify); err != nil {
+		slog.Error("command timeout", "err", err)
 	}
 }

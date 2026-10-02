@@ -11,8 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/alerts"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/auth"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/commands"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/config"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/controls"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/dashboard"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/devices"
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/httpapi"
@@ -33,6 +36,7 @@ type Deps struct {
 	BrokerHost   string
 	BrokerPort   int
 	Hub          *realtime.Hub
+	Publisher    commands.Publisher
 }
 
 func New(d Deps) *gin.Engine {
@@ -75,11 +79,14 @@ func New(d Deps) *gin.Engine {
 	readings.Register(secured, d.Pool)
 	dashboard.Register(secured, d.Pool)
 	metrics.Register(secured, d.Pool)
+	controls.Register(secured, d.Pool)
+	alerts.Register(secured, d.Pool)
 
 	hub := d.Hub
 	if hub == nil {
 		hub = realtime.New()
 	}
+	commands.Register(secured, d.Pool, d.Publisher, hub.Publish)
 	live := v1.Group("")
 	live.Use(auth.RequireStream(d.Pool))
 	realtime.Register(live, d.Pool, hub)

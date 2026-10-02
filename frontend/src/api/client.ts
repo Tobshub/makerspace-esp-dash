@@ -273,8 +273,17 @@ export function projectOverview(projectId: string) {
   return api<Overview>(`/api/v1/projects/${projectId}/overview`)
 }
 
-export function projectEvents(projectId: string, limit = 15) {
-  return api<{ events: Activity[] }>(`/api/v1/projects/${projectId}/events?limit=${limit}`)
+export function projectEvents(
+  projectId: string,
+  params: { limit?: number; eventType?: string; deviceId?: string; from?: string; to?: string } = {},
+) {
+  const query = new URLSearchParams()
+  query.set('limit', String(params.limit ?? 15))
+  if (params.eventType) query.set('event_type', params.eventType)
+  if (params.deviceId) query.set('device_id', params.deviceId)
+  if (params.from) query.set('from', params.from)
+  if (params.to) query.set('to', params.to)
+  return api<{ events: Activity[] }>(`/api/v1/projects/${projectId}/events?${query}`)
 }
 
 export function deviceEvents(deviceId: string, params: { limit?: number; eventType?: string } = {}) {
@@ -288,6 +297,91 @@ export function deviceEvents(deviceId: string, params: { limit?: number; eventTy
 
 export function deviceState(deviceId: string) {
   return api<DeviceState>(`/api/v1/devices/${deviceId}/state`)
+}
+
+export type DeviceCommand = {
+  id: string
+  projectId: string
+  deviceId: string
+  command: string
+  payload: unknown
+  status: string
+  requestedBy?: string
+  requestedAt: string
+  publishedAt: string | null
+  acknowledgedAt: string | null
+  failedAt: string | null
+  correlationId: string
+  errorMessage: string
+}
+
+export type ControlDefinition = {
+  id: string
+  projectId: string
+  name: string
+  key: string
+  controlType: 'button' | 'toggle' | 'slider'
+  command: string
+  configuration: {
+    payload?: Record<string, unknown>
+    onPayload?: Record<string, unknown>
+    offPayload?: Record<string, unknown>
+    min?: number
+    max?: number
+    step?: number
+    payloadKey?: string
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+export type AlertRule = {
+  id: string
+  projectId: string
+  deviceId: string
+  metricKey: string
+  name: string
+  ruleType: 'metric_threshold' | 'device_offline'
+  operator: string
+  thresholdValue: number | null
+  durationSeconds: number
+  enabled: boolean
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type AlertEvent = {
+  id: string
+  alertRuleId: string
+  ruleName: string
+  deviceId: string
+  deviceName: string
+  status: string
+  message: string
+  triggeredAt: string
+  resolvedAt: string | null
+  metadata: unknown
+}
+
+export function deviceCommands(deviceId: string) {
+  return api<{ commands: DeviceCommand[] }>(`/api/v1/devices/${deviceId}/commands`)
+}
+
+export function projectControls(projectId: string) {
+  return api<{ controls: ControlDefinition[] }>(`/api/v1/projects/${projectId}/controls`)
+}
+
+export function projectAlerts(projectId: string) {
+  return api<{ alerts: AlertRule[] }>(`/api/v1/projects/${projectId}/alerts`)
+}
+
+export function projectAlertEvents(projectId: string) {
+  return api<{ events: AlertEvent[] }>(`/api/v1/projects/${projectId}/alert-events`)
+}
+
+export function projectDevices(projectId: string) {
+  return api<{ devices: Device[] }>(`/api/v1/projects/${projectId}/devices`)
 }
 
 export function canWrite(role: string | undefined) {
