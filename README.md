@@ -81,12 +81,27 @@ makerspace/v1/projects/{projectId}/devices/{deviceKey}/telemetry
 
 ## Simulator
 
+The device simulator stands in for an ESP32. It connects as the device, publishes drifting greenhouse telemetry, and answers `set_pump`.
+
 ```bash
 cd tools/device-simulator
-go run . --help
+go run . \
+  --device-key "dev_..." \
+  --secret "shown-once" \
+  --project-id "<project-uuid>"
 ```
 
-MQTT publishing is Phase 5. Until then the command only checks flags.
+The process prints the device key and broker URL. It does not print the secret. Stop it with Ctrl-C. It publishes `{"status":"offline"}` before it disconnects.
+
+While it is running, turn the pump on:
+
+```bash
+mosquitto_pub -h localhost -t "makerspace/v1/projects/<project-uuid>/devices/dev_.../commands" \
+  -q 1 \
+  -m '{"id":"cmd_1","command":"set_pump","payload":{"enabled":true}}'
+```
+
+The device page shows the simulator as online, with firmware `sim-1.0.0`. Use `--interval` to change the 5 second telemetry period.
 
 ## Physical ESP32
 

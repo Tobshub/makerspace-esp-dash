@@ -1,36 +1,78 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
+	cfg, usage, err := parseArgs(os.Args[1:])
+	if err != nil {
+		if errors.Is(err, errHelp) {
+			fmt.Fprint(os.Stdout, usage)
+			os.Exit(0)
+		}
+		if errors.Is(err, errUsage) {
+			fmt.Fprint(os.Stdout, usage)
+			os.Exit(2)
+		}
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(2)
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	if err := Run(ctx, cfg); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+}
+
+var (
+	errHelp  = errors.New("help")
+	errUsage = errors.New("usage")
+)
+
+func parseArgs(args []string) (Config, string, error) {
 	fs := flag.NewFlagSet("device-simulator", flag.ContinueOnError)
-	fs.SetOutput(os.Stdout)
+	var buf bytes.Buffer
+	fs.SetOutput(&buf)
 	deviceKey := fs.String("device-key", "", "public device key")
 	secret := fs.String("secret", "", "one-time device secret (never printed)")
 	broker := fs.String("broker", "tcp://localhost:1883", "MQTT broker URL")
 	projectID := fs.String("project-id", "", "project id used in MQTT topics")
-
+	interval := fs.Duration("interval", defaultInterval, "telemetry publish interval")
+	firmware := fs.String("firmware", defaultFirmware, "firmwareVersion published in state")
 	fs.Usage = func() {
-		fmt.Fprintf(os.Stdout, "Usage: device-simulator --device-key KEY --secret SECRET --project-id ID\n\n")
+		fmt.Fprintf(&buf, "Usage: device-simulator --device-key KEY --secret SECRET --project-id ID\n\n")
 		fs.PrintDefaults()
 	}
-
-	if err := fs.Parse(os.Args[1:]); err != nil {
-		if err == flag.ErrHelp {
-			os.Exit(0)
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return Config{}, buf.String(), errHelp
 		}
-		os.Exit(2)
+		return Config{}, buf.String(), err
 	}
-
-	if *deviceKey == "" || *secret == "" || *projectID == "" {
+	cfg := Config{
+		DeviceKey: *deviceKey,
+		Secret:    *secret,
+		ProjectID: *projectID,
+		Broker:    *broker,
+		Interval:  *interval,
+		Firmware:  *firmware,
+	}
+	if cfg.DeviceKey == "" || cfg.Secret == "" || cfg.ProjectID == "" {
 		fs.Usage()
-		os.Exit(2)
+		return Config{}, buf.String(), errUsage
 	}
-
-	fmt.Printf("device simulator skeleton\ndevice_key=%s\nproject_id=%s\nbroker=%s\n", *deviceKey, *projectID, *broker)
-	fmt.Println("MQTT connect, telemetry, and command acknowledgements land in Phase 5.")
+	if err := cfg.validate(); err != nil {
+		return Config{}, buf.String(), err
+	}
+	return cfg, buf.String(), nil
 }
