@@ -7,7 +7,7 @@ If time is short, `plan.md` section 85 is the cut order. The phase numbers below
 | Phase | Name | Outcome |
 | --- | --- | --- |
 | 0 | [Repository discovery](00-repository-discovery.md) | Done. Greenfield skeleton. |
-| 1 | [Infrastructure](01-infrastructure.md) | Postgres, MQTT, health, migrations. |
+| 1 | [Infrastructure](01-infrastructure.md) | Done. Postgres, MQTT, health, migrations. |
 | 2 | [Teams and projects](02-teams-and-projects.md) | Auth, teams, projects, authorization. |
 | 3 | [Device registry](03-device-registry.md) | One-time device credentials. |
 | 4 | [MQTT ingestion](04-mqtt-ingestion.md) | Telemetry and state land in the database. |

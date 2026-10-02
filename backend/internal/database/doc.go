@@ -1,2 +1,2 @@
-// Package database will own PostgreSQL connections and Goose migrations.
+// Package database owns the PostgreSQL pool and Goose migrations.
 package database

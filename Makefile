@@ -25,7 +25,7 @@ lint:
 	cd frontend && npm run lint
 
 migrate:
-	@echo "Goose migrations start in Phase 1. See docs/phases/01-infrastructure.md"
+	cd backend && go run ./cmd/migrate
 
 seed:
 	@echo "Demo seed data arrives after teams, projects, and devices exist."

@@ -45,7 +45,13 @@ make web
 
 ## Database migrations
 
-Goose migrations will live in `backend/migrations`. The runner is Phase 1 (`make migrate`).
+```bash
+make migrate
+```
+
+Goose applies the SQL files in `backend/migrations`. Run this after `make infra` and before using the API.
+
+`GET /health` returns 200 and reports whether PostgreSQL and MQTT are reachable. `GET /ready` returns 503 until both are connected.
 
 ## MQTT broker
 

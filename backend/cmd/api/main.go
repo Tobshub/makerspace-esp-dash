@@ -1,42 +1,47 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
-	"github.com/gin-gonic/gin"
+	"context"
+	"log/slog"
+	"os"
 
 	"github.com/Tobshub/makerspace-esp-dash/backend/internal/config"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/database"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/mqtt"
+	"github.com/Tobshub/makerspace-esp-dash/backend/internal/server"
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	cfg := config.Load()
 
-	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
+	pool, err := database.Open(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		slog.Error("database configuration invalid", "err", err)
+		os.Exit(1)
+	}
+	if pool != nil {
+		defer pool.Close()
+	}
 
-	router.GET("/health", func(c *gin.Context) {
-		// Phase 1 replaces unchecked with live database and MQTT probes.
-		c.JSON(http.StatusOK, gin.H{
-			"status":   "ok",
-			"database": "unchecked",
-			"mqtt":     "unchecked",
-		})
-	})
-	router.GET("/ready", func(c *gin.Context) {
-		// Connectivity checks arrive in Phase 1. Until then the process is
-		// ready to serve the skeleton API only.
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
-	router.GET("/api/v1", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"service": "makerspace-esp-dash",
-			"version": "v1",
-		})
-	})
+	host, port, err := mqtt.ParsePublic(cfg.MQTTBrokerURL)
+	if err != nil {
+		slog.Error("mqtt broker url invalid")
+		host, port = "localhost", 1883
+	}
+	broker := mqtt.Connect(cfg.MQTTBrokerURL, cfg.MQTTUsername, cfg.MQTTPassword)
+	defer broker.Close()
 
-	log.Printf("api listening on %s", cfg.HTTPAddr)
-	if err := router.Run(cfg.HTTPAddr); err != nil {
-		log.Fatal(err)
+	engine := server.New(server.Deps{
+		Config:     cfg,
+		Pool:       pool,
+		MQTTUp:     broker.Connected,
+		BrokerHost: host,
+		BrokerPort: port,
+	})
+	slog.Info("api listening", "addr", cfg.HTTPAddr)
+	if err := engine.Run(cfg.HTTPAddr); err != nil {
+		slog.Error("api stopped", "err", err)
+		os.Exit(1)
 	}
 }
