@@ -4,9 +4,10 @@ dev: infra
 	@echo "Infrastructure is up."
 	@echo "Start the API:  make api"
 	@echo "Start the UI:   make web"
+	@echo "Full stack:     docker compose up -d --build  (UI http://localhost:8088)"
 
 infra:
-	docker compose up -d
+	docker compose up -d postgres mosquitto redis
 
 api:
 	cd backend && go run ./cmd/api

@@ -1,32 +1,93 @@
+# Coolify (Git, Docker Compose build pack):
+#   Base directory: repository root
+#   Compose file:   docker-compose.yml
+# Coolify does not load docker-compose.override.yml, so Postgres and Redis
+# stay off the host network. The web service is the public console on port 80
+# and proxies /api, /health, and /ready to the API. Devices connect to MQTT on
+# the published host port (1883 unless MQTT_PUBLISH_PORT is set). Open that
+# port on the VM firewall. The broker image bakes in infra/mosquitto/mosquitto.conf.
+
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: makerspace
-      POSTGRES_PASSWORD: makerspace
+      POSTGRES_USER: ${SERVICE_USER_POSTGRES:-makerspace}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES:-makerspace}
       POSTGRES_DB: makerspace
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U makerspace -d makerspace"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   mosquitto:
-    image: eclipse-mosquitto:2
+    build:
+      context: ./infra/mosquitto
     ports:
-      - "1883:1883"
-    volumes:
-      - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - "${MQTT_PUBLISH_PORT:-1883}:1883"
+    restart: unless-stopped
 
   # Optional. Telemetry rate limits are in-process until a later phase needs shared state.
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      HTTP_ADDR: ":8080"
+      GIN_MODE: release
+      DATABASE_URL: postgres://${SERVICE_USER_POSTGRES:-makerspace}:${SERVICE_PASSWORD_POSTGRES:-makerspace}@postgres:5432/makerspace?sslmode=disable
+      MQTT_BROKER_URL: tcp://mosquitto:1883
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      MQTT_PUBLIC_HOST: ${MQTT_PUBLIC_HOST:-${SERVICE_FQDN_WEB:-localhost}}
+      MQTT_PUBLIC_PORT: ${MQTT_PUBLISH_PORT:-1883}
+      APP_URL: ${SERVICE_URL_WEB:-http://localhost:5173}
+      DEVICE_OFFLINE_TIMEOUT_SECONDS: ${DEVICE_OFFLINE_TIMEOUT_SECONDS:-60}
+      COMMAND_TIMEOUT_SECONDS: ${COMMAND_TIMEOUT_SECONDS:-30}
+      MQTT_MAX_PAYLOAD_BYTES: ${MQTT_MAX_PAYLOAD_BYTES:-16384}
+      MQTT_MAX_METRICS: ${MQTT_MAX_METRICS:-50}
+      MQTT_MAX_KEY_LENGTH: ${MQTT_MAX_KEY_LENGTH:-64}
+      MQTT_MAX_STRING_LENGTH: ${MQTT_MAX_STRING_LENGTH:-1024}
+      MQTT_TELEMETRY_PER_SECOND: ${MQTT_TELEMETRY_PER_SECOND:-10}
+      TELEMETRY_RETENTION_DAYS: ${TELEMETRY_RETENTION_DAYS:-90}
+      DEVICE_EVENT_RETENTION_DAYS: ${DEVICE_EVENT_RETENTION_DAYS:-30}
+      # Coolify routes this service when a domain is assigned. The console does not need it.
+      SERVICE_URL_API_8080: /
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+    environment:
+      # Coolify assigns the public console domain and proxies to port 80.
+      SERVICE_URL_WEB: /
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
 
 volumes:
   postgres_data:

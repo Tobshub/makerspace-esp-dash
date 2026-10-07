@@ -32,6 +32,12 @@ func main() {
 		slog.Error("mqtt broker url invalid")
 		host, port = "localhost", 1883
 	}
+	if cfg.MQTTPublicHost != "" {
+		host = cfg.MQTTPublicHost
+	}
+	if cfg.MQTTPublicPort > 0 {
+		port = cfg.MQTTPublicPort
+	}
 	hub := realtime.New()
 	broker := mqtt.Connect(cfg.MQTTBrokerURL, cfg.MQTTUsername, cfg.MQTTPassword)
 	defer broker.Close()

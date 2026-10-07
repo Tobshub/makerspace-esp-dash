@@ -1,0 +1,19 @@
+# Loaded automatically by local `docker compose`. Coolify passes -f docker-compose.yml
+# and does not load this file.
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  api:
+    ports:
+      - "8080:8080"
+
+  web:
+    ports:
+      - "8088:80"

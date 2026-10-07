@@ -17,6 +17,8 @@ type Config struct {
 	MQTTBrokerURL            string
 	MQTTUsername             string
 	MQTTPassword             string
+	MQTTPublicHost           string
+	MQTTPublicPort           int
 	DeviceOfflineTimeout     time.Duration
 	CommandTimeout           time.Duration
 	AppURL                   string
@@ -38,6 +40,8 @@ func Load() Config {
 		MQTTBrokerURL:            env("MQTT_BROKER_URL", "tcp://localhost:1883"),
 		MQTTUsername:             os.Getenv("MQTT_USERNAME"),
 		MQTTPassword:             os.Getenv("MQTT_PASSWORD"),
+		MQTTPublicHost:           os.Getenv("MQTT_PUBLIC_HOST"),
+		MQTTPublicPort:           envInt("MQTT_PUBLIC_PORT", 0),
 		DeviceOfflineTimeout:     time.Duration(envInt("DEVICE_OFFLINE_TIMEOUT_SECONDS", 60)) * time.Second,
 		CommandTimeout:           time.Duration(envInt("COMMAND_TIMEOUT_SECONDS", 30)) * time.Second,
 		AppURL:                   env("APP_URL", "http://localhost:5173"),
