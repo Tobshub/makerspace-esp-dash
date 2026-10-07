@@ -7,10 +7,12 @@ export function HomePage() {
       <h1>Connect a device without changing the backend.</h1>
       <p className="lede">
         Teams register an ESP32, send arbitrary telemetry over MQTT, and shape
-        the dashboard from metric definitions.
+        the dashboard from metric definitions. Sign in to create a team and project, then add a device.
       </p>
-      <p>
-        <Link to="/login">Sign in</Link> to create a team and project, then add a device.
+      <p className="row">
+        <Link className="button" to="/login">
+          Sign in
+        </Link>
       </p>
     </section>
   )
