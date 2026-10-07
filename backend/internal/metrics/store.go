@@ -31,6 +31,7 @@ type Definition struct {
 	DisplayType string          `json:"displayType"`
 	MinValue    *float64        `json:"minValue"`
 	MaxValue    *float64        `json:"maxValue"`
+	Hidden      bool            `json:"hidden"`
 	Metadata    json.RawMessage `json:"metadata"`
 	CreatedAt   time.Time       `json:"createdAt"`
 	UpdatedAt   time.Time       `json:"updatedAt"`
@@ -39,7 +40,7 @@ type Definition struct {
 
 const definitionSelect = `
 	id::text, project_id::text, key, name, description, data_type, unit, display_type,
-	min_value, max_value, metadata, created_at, updated_at,
+	min_value, max_value, hidden, metadata, created_at, updated_at,
 	(SELECT max(t.recorded_at) FROM telemetry t
 	 WHERE t.project_id = metric_definitions.project_id AND t.metric_key = metric_definitions.key)
 `
@@ -61,6 +62,7 @@ type Input struct {
 	DisplayType string
 	MinValue    *float64
 	MaxValue    *float64
+	Hidden      bool
 	Metadata    json.RawMessage
 	checkKey    bool
 }
@@ -141,10 +143,10 @@ func createDefinition(ctx context.Context, pool *pgxpool.Pool, projectID string,
 	in = normalize(in)
 	row := pool.QueryRow(ctx, `
 		INSERT INTO metric_definitions (
-			project_id, key, name, description, data_type, unit, display_type, min_value, max_value, metadata
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			project_id, key, name, description, data_type, unit, display_type, min_value, max_value, hidden, metadata
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING `+definitionSelect+`
-	`, database.ID(projectID), in.Key, in.Name, in.Description, in.DataType, in.Unit, in.DisplayType, in.MinValue, in.MaxValue, in.Metadata)
+	`, database.ID(projectID), in.Key, in.Name, in.Description, in.DataType, in.Unit, in.DisplayType, in.MinValue, in.MaxValue, in.Hidden, in.Metadata)
 	item, err := scanDefinition(row)
 	if err == nil {
 		return item, nil
@@ -167,11 +169,12 @@ func updateDefinition(ctx context.Context, pool *pgxpool.Pool, metricID string, 
 		    display_type = $6,
 		    min_value = $7,
 		    max_value = $8,
-		    metadata = $9,
+		    hidden = $9,
+		    metadata = $10,
 		    updated_at = now()
 		WHERE id = $1
 		RETURNING `+definitionSelect+`
-	`, database.ID(metricID), in.Name, in.Description, in.DataType, in.Unit, in.DisplayType, in.MinValue, in.MaxValue, in.Metadata)
+	`, database.ID(metricID), in.Name, in.Description, in.DataType, in.Unit, in.DisplayType, in.MinValue, in.MaxValue, in.Hidden, in.Metadata)
 	item, err := scanDefinition(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Definition{}, ErrNotFound
@@ -199,7 +202,7 @@ func scanDefinition(row scanner) (Definition, error) {
 	err := row.Scan(
 		&item.ID, &item.ProjectID, &item.Key, &item.Name, &item.Description,
 		&item.DataType, &item.Unit, &item.DisplayType, &item.MinValue, &item.MaxValue,
-		&item.Metadata, &item.CreatedAt, &item.UpdatedAt, &item.LastSeenAt,
+		&item.Hidden, &item.Metadata, &item.CreatedAt, &item.UpdatedAt, &item.LastSeenAt,
 	)
 	return item, err
 }

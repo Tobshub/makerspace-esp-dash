@@ -69,7 +69,10 @@ export function DevicePage() {
     refetchInterval: liveInterval(),
   })
   const defined = definitions.data?.metrics ?? []
-  const numeric = latest.data?.metrics.filter(isNumericMetric) ?? []
+  const visibleDefinitions = defined.filter((item) => !item.hidden)
+  const hiddenKeys = new Set(defined.filter((item) => item.hidden).map((item) => item.key))
+  const visibleLatest = latest.data?.metrics.filter((item) => !hiddenKeys.has(item.metric)) ?? []
+  const numeric = visibleLatest.filter(isNumericMetric)
   const selectedMetric = numeric.some((item) => item.metric === metricChoice) ? metricChoice : (numeric[0]?.metric ?? '')
   const historyFrom = new Date(now - rangeMs(range)).toISOString()
   const history = useQuery({
@@ -174,10 +177,15 @@ export function DevicePage() {
         {latest.isLoading ? <p>Loading…</p> : null}
         {latest.isError ? <p className="error">{errorText(latest.error)}</p> : null}
         {latest.data && latest.data.metrics.length === 0 ? <p>No telemetry yet.</p> : null}
-        {latest.data && latest.data.metrics.length > 0 ? (
+        {latest.data && latest.data.metrics.length > 0 && visibleLatest.length === 0 ? (
+          <p className="muted">
+            These metrics are hidden. <Link to={`/projects/${projectId}/metrics`}>Show them again</Link> from Metrics.
+          </p>
+        ) : null}
+        {visibleLatest.length > 0 ? (
           <ul className="metric-list">
-            {latest.data.metrics.map((metric) => {
-              const definition = defined.find((item) => item.key === metric.metric)
+            {visibleLatest.map((metric) => {
+              const definition = visibleDefinitions.find((item) => item.key === metric.metric)
               return (
                 <li key={metric.metric}>
                   <span>{definition?.name ?? metric.metric}</span>
@@ -192,12 +200,12 @@ export function DevicePage() {
         ) : null}
       </div>
       <MetricWidgets
-        definitions={defined}
+        definitions={visibleDefinitions}
         devices={[
           {
             deviceId,
             deviceName: current.name,
-            metrics: latest.data?.metrics ?? [],
+            metrics: visibleLatest,
           },
         ]}
       />
@@ -213,7 +221,7 @@ export function DevicePage() {
                 <select value={selectedMetric} onChange={(event) => setMetricChoice(event.target.value)}>
                   {numeric.map((item) => (
                     <option key={item.metric} value={item.metric}>
-                      {defined.find((definition) => definition.key === item.metric)?.name ?? item.metric}
+                      {visibleDefinitions.find((definition) => definition.key === item.metric)?.name ?? item.metric}
                     </option>
                   ))}
                 </select>

@@ -45,6 +45,7 @@ type Draft = {
   displayType: string
   minValue: string
   maxValue: string
+  hidden: boolean
   definitionId: string | null
 }
 
@@ -59,6 +60,7 @@ export function MetricsPage() {
   const [draft, setDraft] = useState<Draft | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [pending, setPending] = useState(false)
+  const [hidingKey, setHidingKey] = useState('')
   const [saved, setSaved] = useState(false)
 
   const definitions = useQuery({
@@ -105,6 +107,7 @@ export function MetricsPage() {
             displayType: definition.displayType,
             minValue: definition.minValue == null ? '' : String(definition.minValue),
             maxValue: definition.maxValue == null ? '' : String(definition.maxValue),
+            hidden: definition.hidden,
             definitionId: definition.id,
           }
         : {
@@ -116,6 +119,7 @@ export function MetricsPage() {
             displayType: defaultDisplay(row.dataType),
             minValue: '',
             maxValue: '',
+            hidden: false,
             definitionId: null,
           },
     )
@@ -133,6 +137,7 @@ export function MetricsPage() {
       displayType: 'number',
       minValue: '',
       maxValue: '',
+      hidden: false,
       definitionId: null,
     })
   }
@@ -164,6 +169,7 @@ export function MetricsPage() {
       displayType: draft.displayType,
       minValue: draft.dataType === 'number' ? blankNumber(draft.minValue) : null,
       maxValue: draft.dataType === 'number' ? blankNumber(draft.maxValue) : null,
+      hidden: draft.hidden,
     }
     try {
       if (draft.definitionId) {
@@ -181,6 +187,50 @@ export function MetricsPage() {
       setError(err)
     } finally {
       setPending(false)
+    }
+  }
+
+  async function setHidden(row: Row, hidden: boolean) {
+    setError(null)
+    setHidingKey(row.key)
+    try {
+      const definition = row.definition
+      if (definition) {
+        await api(`/api/v1/metrics/${definition.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: definition.name,
+            description: definition.description,
+            dataType: definition.dataType,
+            unit: definition.unit,
+            displayType: definition.displayType,
+            minValue: definition.minValue,
+            maxValue: definition.maxValue,
+            hidden,
+          }),
+        })
+        if (draft?.definitionId === definition.id) setDraft({ ...draft, hidden })
+      } else {
+        await api(`/api/v1/projects/${projectId}/metrics`, {
+          method: 'POST',
+          body: JSON.stringify({
+            key: row.key,
+            name: suggestMetricName(row.key),
+            description: '',
+            dataType: row.dataType,
+            unit: '',
+            displayType: defaultDisplay(row.dataType),
+            minValue: null,
+            maxValue: null,
+            hidden: true,
+          }),
+        })
+      }
+      await refresh(queryClient, projectId)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setHidingKey('')
     }
   }
 
@@ -202,7 +252,9 @@ export function MetricsPage() {
     <section className="page">
       <p className="eyebrow">Metrics</p>
       <h1>Metrics</h1>
-      <p className="lede">Name a telemetry key and choose how the dashboard draws it. Devices can send data before you do this.</p>
+      <p className="lede">
+        Name a telemetry key and choose how the dashboard draws it. Hide a key to keep it off the overview and device pages. Devices can send data before you do this.
+      </p>
       {items.length === 0 && !draft ? (
         <div className="card">
           <p>No telemetry metrics discovered yet.</p>
@@ -234,13 +286,23 @@ export function MetricsPage() {
                 <td className="secret-value">{row.key}</td>
                 <td>{row.definition?.name ?? '—'}</td>
                 <td>{dataTypes.find((item) => item.id === row.dataType)?.label ?? row.dataType}</td>
-                <td>{row.configured ? 'Configured' : 'Unconfigured'}</td>
+                <td>{row.definition?.hidden ? 'Hidden' : row.configured ? 'Configured' : 'Unconfigured'}</td>
                 <td>{formatWhen(row.lastSeenAt, now)}</td>
                 <td>
                   {write ? (
-                    <button type="button" className="secondary small" onClick={() => openDiscovered(row)}>
-                      {row.configured ? 'Edit' : 'Configure'}
-                    </button>
+                    <div className="actions">
+                      <button type="button" className="secondary small" onClick={() => openDiscovered(row)}>
+                        {row.configured ? 'Edit' : 'Configure'}
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary small"
+                        disabled={hidingKey === row.key}
+                        onClick={() => void setHidden(row, !row.definition?.hidden)}
+                      >
+                        {row.definition?.hidden ? 'Show' : 'Hide'}
+                      </button>
+                    </div>
                   ) : null}
                 </td>
               </tr>
@@ -331,6 +393,14 @@ export function MetricsPage() {
               </label>
             </>
           ) : null}
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={draft.hidden}
+              onChange={(event) => setDraft({ ...draft, hidden: event.target.checked })}
+            />
+            Hide on dashboard
+          </label>
           <label>
             Description
             <textarea

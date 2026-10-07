@@ -57,7 +57,10 @@ export function OverviewPage() {
     refetchInterval: liveInterval(),
   })
 
-  const definedKeys = new Set((definitions.data?.metrics ?? []).map((item) => item.key))
+  const allDefinitions = definitions.data?.metrics ?? []
+  const visibleDefinitions = allDefinitions.filter((item) => !item.hidden)
+  const definedKeys = new Set(allDefinitions.map((item) => item.key))
+  const hiddenKeys = new Set(allDefinitions.filter((item) => item.hidden).map((item) => item.key))
   const cards = metricCards(latest.data?.devices ?? []).filter((card) => !definedKeys.has(card.metric))
   const widgetDevices = (latest.data?.devices ?? []).map((device) => ({
     deviceId: device.deviceId,
@@ -78,7 +81,9 @@ export function OverviewPage() {
     })),
   })
 
-  const chartDevices = (latest.data?.devices ?? []).filter((device) => device.metrics.some(isNumericMetric))
+  const chartDevices = (latest.data?.devices ?? [])
+    .map((device) => ({ ...device, metrics: device.metrics.filter((item) => !hiddenKeys.has(item.metric)) }))
+    .filter((device) => device.metrics.some(isNumericMetric))
   const selectedDevice = chartDevices.find((device) => device.deviceId === deviceId) ?? chartDevices[0]
   const numeric = selectedDevice?.metrics.filter(isNumericMetric) ?? []
   const selectedMetric = numeric.some((item) => item.metric === metric) ? metric : (numeric[0]?.metric ?? '')
@@ -153,11 +158,18 @@ export function OverviewPage() {
       </p>
 
       {definitions.isError ? <p className="error">{errorText(definitions.error)}</p> : null}
-      <MetricWidgets definitions={definitions.data?.metrics ?? []} devices={widgetDevices} />
+      <MetricWidgets definitions={visibleDefinitions} devices={widgetDevices} />
 
       {latest.isError ? <p className="error">{errorText(latest.error)}</p> : null}
       {latest.isLoading ? <p>Loading telemetry…</p> : null}
-      {!latest.isLoading && cards.length === 0 && items.length > 0 ? <p>Waiting for telemetry…</p> : null}
+      {!latest.isLoading && cards.length === 0 && visibleDefinitions.length === 0 && items.length > 0 && !hasTelemetry(latest.data?.devices ?? []) ? (
+        <p>Waiting for telemetry…</p>
+      ) : null}
+      {!latest.isLoading && hasTelemetry(latest.data?.devices ?? []) && cards.length === 0 && visibleDefinitions.length === 0 ? (
+        <p className="muted">
+          All current metrics are hidden. <Link to={`/projects/${projectId}/metrics`}>Show them again</Link> from Metrics.
+        </p>
+      ) : null}
       {cards.length > 0 ? (
         <p className="muted">
           <Link to={`/projects/${projectId}/metrics`}>Configure metrics</Link> to name these and choose a chart, gauge, or status.
@@ -202,7 +214,7 @@ export function OverviewPage() {
                 <select value={selectedMetric} onChange={(event) => setMetric(event.target.value)}>
                   {numeric.map((item) => (
                     <option key={item.metric} value={item.metric}>
-                      {definitions.data?.metrics.find((definition) => definition.key === item.metric)?.name ?? item.metric}
+                      {visibleDefinitions.find((definition) => definition.key === item.metric)?.name ?? item.metric}
                     </option>
                   ))}
                 </select>
@@ -280,6 +292,10 @@ export function OverviewPage() {
       )}
     </section>
   )
+}
+
+function hasTelemetry(devices: { metrics: TelemetryValue[] }[]) {
+  return devices.some((device) => device.metrics.length > 0)
 }
 
 function metricCards(

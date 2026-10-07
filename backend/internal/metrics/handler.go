@@ -32,6 +32,7 @@ type definitionBody struct {
 	DisplayType string          `json:"displayType"`
 	MinValue    *float64        `json:"minValue"`
 	MaxValue    *float64        `json:"maxValue"`
+	Hidden      bool            `json:"hidden"`
 	Metadata    json.RawMessage `json:"metadata"`
 }
 
@@ -163,6 +164,7 @@ func readBody(c *gin.Context, withKey bool) (Input, bool) {
 		DisplayType: body.DisplayType,
 		MinValue:    body.MinValue,
 		MaxValue:    body.MaxValue,
+		Hidden:      body.Hidden,
 		Metadata:    body.Metadata,
 		checkKey:    withKey,
 	}

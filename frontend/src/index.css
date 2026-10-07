@@ -450,6 +450,21 @@ label {
   text-transform: uppercase;
 }
 
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+label.check input {
+  width: auto;
+}
+
 input,
 textarea,
 select {

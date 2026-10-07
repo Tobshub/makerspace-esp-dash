@@ -112,7 +112,7 @@ func TestMetricDefinitions(t *testing.T) {
 	}, http.StatusCreated)
 	metric := saved["metric"].(map[string]any)
 	metricID := metric["id"].(string)
-	if metric["unit"] != "°C" || metric["displayType"] != "gauge" || metric["key"] != "temperature" {
+	if metric["unit"] != "°C" || metric["displayType"] != "gauge" || metric["key"] != "temperature" || metric["hidden"] != false {
 		t.Fatalf("created %#v", metric)
 	}
 
@@ -139,6 +139,18 @@ func TestMetricDefinitions(t *testing.T) {
 	}
 	if patched["metric"].(map[string]any)["key"] != "temperature" {
 		t.Fatalf("key changed %#v", patched)
+	}
+
+	hidden := patchJSON(t, router, "/api/v1/metrics/"+metricID, tokenA, map[string]any{
+		"name":        "Bench temperature",
+		"description": "Air near the bed",
+		"dataType":    "number",
+		"unit":        "°C",
+		"displayType": "line",
+		"hidden":      true,
+	})
+	if hidden["metric"].(map[string]any)["hidden"] != true {
+		t.Fatalf("hidden %#v", hidden)
 	}
 
 	listed := getBody(t, router, "/api/v1/projects/"+projectID+"/metrics", tokenA)

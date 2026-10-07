@@ -139,6 +139,7 @@ export type MetricDefinition = {
   displayType: 'number' | 'line' | 'gauge' | 'boolean' | 'status' | 'text'
   minValue: number | null
   maxValue: number | null
+  hidden: boolean
   createdAt: string
   updatedAt: string
   lastSeenAt: string | null
